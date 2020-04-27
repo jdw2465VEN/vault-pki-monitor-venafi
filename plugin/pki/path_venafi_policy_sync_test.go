@@ -254,7 +254,7 @@ func TestSyncMultipleRolesWithTPPPolicy(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Log("Setting up first policy")
+	t.Log("Setting up first role")
 
 	resp, err := b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.UpdateOperation,

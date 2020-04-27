@@ -3,6 +3,7 @@ package pki
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/hashicorp/vault/sdk/logical"
 	"log"
 	"strings"
@@ -740,4 +741,123 @@ func TestVenafiPolicyAutoRefresh(t *testing.T) {
 
 	}
 
+}
+
+func TestAssociateOrphanRolesWithDefaultPolicy(t *testing.T) {
+	// create the backend
+	config := logical.TestBackendConfig()
+	storage := &logical.InmemStorage{}
+	testRoleName := "test-venafi-role"
+	testRoleName2 := "test-venafi-role2"
+	testRoleName3 := "test-venafi-role3"
+	testRoleName4 := "test-venafi-role4"
+	config.StorageView = storage
+
+	b := Backend(config)
+	err := b.Setup(context.Background(), config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log("Setting up first role")
+
+	b.setupRole(t, testRoleName, storage, roleData)
+
+	t.Log("Setting up policy")
+	writePolicy(b, storage, policyCloudData, t, "cloud-policy")
+
+	b.setupRole(t, testRoleName2, storage, roleData)
+
+	b.setupRole(t, testRoleName3, storage, roleData)
+
+	t.Log("Setting up fourth role")
+
+	b.setupRole(t, testRoleName4, storage, roleData)
+
+	t.Log("Setting up policy")
+
+	policy := copyMap(policyTPPData)
+	policy[policyFieldDefaultsRoles] = fmt.Sprintf("%s,%s", testRoleName, testRoleName2)
+	writePolicy(b, storage, policy, t, "tpp-policy")
+
+	policy2 := copyMap(policyTPPData2)
+	policy2[policyFieldDefaultsRoles] = testRoleName4
+	writePolicy(b, storage, policy2, t, "tpp2-policy")
+
+	ctx := context.Background()
+	err = b.syncPolicyEnforcementAndRoleDefaults(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log("Checking data for the first role")
+	roleEntryData, err := b.getPKIRoleEntry(ctx, storage, testRoleName)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if roleEntryData == nil {
+		t.Fatal("role entry should not be nil")
+	}
+
+	checkRoleEntry(t, *roleEntryData, wantTPPRoleEntry)
+
+	t.Log("Checking data for the second role")
+	roleEntryData, err = b.getPKIRoleEntry(ctx, storage, testRoleName2)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if roleEntryData == nil {
+		t.Fatal("role entry should not be nil")
+	}
+
+	checkRoleEntry(t, *roleEntryData, wantCloudRoleEntry)
+
+	t.Log("Checking data for the third role")
+	roleEntryData, err = b.getPKIRoleEntry(ctx, storage, testRoleName3)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if roleEntryData == nil {
+		t.Fatal("role entry should not be nil")
+	}
+
+	checkRoleEntry(t, *roleEntryData, wantTPPRoleEntryNoSync)
+
+	t.Log("Checking data for the fourth role")
+	roleEntryData, err = b.getPKIRoleEntry(ctx, storage, testRoleName4)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if roleEntryData == nil {
+		t.Fatal("role entry should not be nil")
+	}
+
+	checkRoleEntry(t, *roleEntryData, wantTPPRoleEntry2)
+
+	//	List roles with sync
+	resp, err := b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      venafiSyncPolicyListPath,
+		Storage:   storage,
+	})
+
+	if resp != nil && resp.IsError() {
+		t.Fatalf("failed to list roles, %#v", resp)
+	}
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.Data["keys"] == nil {
+		t.Fatalf("Expected there will be roles in the keys list")
+	}
 }
