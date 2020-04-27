@@ -380,6 +380,32 @@ func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.
 
 	}
 
+	//temp struct for testing
+	type rolesTypesData struct {
+		enforcementRoles []string
+		defaultsRoles    []string
+		importRoles      []string
+	}
+
+	var rolesData rolesTypesData
+
+	for _, roleType := range []string{policyFieldEnforcementRoles, policyFieldDefaultsRoles, policyFieldImportRoles} {
+		for _, roleName := range data.Get(roleType).([]string) {
+			switch roleType {
+			case policyFieldEnforcementRoles:
+				rolesData.enforcementRoles = append(rolesData.enforcementRoles, roleName)
+			case policyFieldDefaultsRoles:
+				rolesData.defaultsRoles = append(rolesData.defaultsRoles, roleName)
+			case policyFieldImportRoles:
+				rolesData.importRoles = append(rolesData.importRoles, roleName)
+			}
+		}
+	}
+
+	//temp map for testing
+	rolesTypesMap := getRolesTypeMap(data)
+	log.Println(rolesTypesMap)
+
 	for _, roleType := range []string{policyFieldEnforcementRoles, policyFieldDefaultsRoles, policyFieldImportRoles} {
 		for _, roleName := range data.Get(roleType).([]string) {
 			role, err := b.getRole(ctx, req.Storage, roleName)
@@ -432,6 +458,23 @@ func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.
 		return err
 	}
 	return nil
+}
+
+func getRolesTypeMap(data *framework.FieldData) (rolesTypesMap map[string][]string){
+	rolesTypesMap = map[string][]string{}
+	for _, roleType := range []string{policyFieldEnforcementRoles, policyFieldDefaultsRoles, policyFieldImportRoles} {
+		for _, roleName := range data.Get(roleType).([]string) {
+			switch roleType {
+			case policyFieldEnforcementRoles:
+				rolesTypesMap[policyFieldEnforcementRoles] = append(rolesTypesMap[policyFieldEnforcementRoles], roleName)
+			case policyFieldDefaultsRoles:
+				rolesTypesMap[policyFieldDefaultsRoles] = append(rolesTypesMap[policyFieldDefaultsRoles], roleName)
+			case policyFieldImportRoles:
+				rolesTypesMap[policyFieldImportRoles] = append(rolesTypesMap[policyFieldImportRoles], roleName)
+			}
+		}
+	}
+	return rolesTypesMap
 }
 
 func savePolicyEntry(policy *endpoint.Policy, name string, ctx context.Context, storage logical.Storage) (policyEntry *venafiPolicyEntry, err error) {
@@ -564,8 +607,8 @@ func (b *backend) pathReadVenafiPolicy(ctx context.Context, req *logical.Request
 		policyFieldEnforcementRoles: rolesList.enforceRoles,
 		"auto_refresh_interval":     config.AutoRefreshInterval,
 		"last_policy_update_time":   config.LastPolicyUpdateTime,
-		"import_timeout":     config.VenafiImportTimeout,
-		"import_workers":     config.VenafiImportWorkers,
+		"import_timeout":            config.VenafiImportTimeout,
+		"import_workers":            config.VenafiImportWorkers,
 		"create_role":               config.CreateRole,
 	}
 

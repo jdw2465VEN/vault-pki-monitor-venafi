@@ -793,8 +793,8 @@ func TestAssociateOrphanRolesWithDefaultPolicy(t *testing.T) {
 		if policyMap.Roles[name].EnforcementPolicy != "default" {
 			t.Fatalf("%s role is not in default policy enforcement", name)
 		}
-		if policyMap.Roles[name].ImportPolicy != "default" {
-			t.Fatalf("%s role is not in default policy import", name)
+		if policyMap.Roles[name].ImportPolicy != "" {
+			t.Fatalf("%s role should not be in policy import", name)
 		}
 	}
 }
