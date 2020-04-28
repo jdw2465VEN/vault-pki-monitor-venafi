@@ -821,6 +821,45 @@ func Test_updateRolesPolicyAttributes(t *testing.T) {
 
 }
 
+func Test_getPolicyRoleMap(t *testing.T) {
+
+	storage := &logical.InmemStorage{}
+	ctx := context.Background()
+
+	var policyMap policyRoleMap
+	policyMap.Roles = make(map[string]policyTypes)
+	r := policyTypes{}
+	r.EnforcementPolicy = "policy1"
+	policyMap.Roles["role1"] = r
+	r = policyTypes{}
+	r.DefaultsPolicy = "policy2"
+	policyMap.Roles["role2"] = r
+
+	jsonEntry, err := logical.StorageEntryJSON(venafiRolePolicyMapStorage, policyMap)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := storage.Put(ctx, jsonEntry); err != nil {
+		t.Fatal(err)
+	}
+
+	policyMapGot, err := getPolicyRoleMap(ctx, storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tm := make(map[string]string)
+	tm["policy1"] = policyMapGot.Roles["role1"].EnforcementPolicy
+	tm["policy2"] = policyMapGot.Roles["role2"].EnforcementPolicy
+
+	for want, have := range tm {
+		if have != want {
+			t.Fatalf("%s doesn't match %s", have, want)
+		}
+	}
+}
+
 func TestAssociateOrphanRolesWithDefaultPolicy(t *testing.T) {
 	// create the backend
 	config := logical.TestBackendConfig()

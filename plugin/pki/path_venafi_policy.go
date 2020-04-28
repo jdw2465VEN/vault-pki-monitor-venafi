@@ -385,7 +385,6 @@ type policyRoleMap struct {
 }
 
 func getPolicyRoleMap(ctx context.Context, storage logical.Storage) (policyMap policyRoleMap, err error) {
-	//TODO: write test for it
 	policyMap.Roles = make(map[string]policyTypes)
 
 	entry, err := storage.Get(ctx, venafiRolePolicyMapStorage)
@@ -406,7 +405,6 @@ func getPolicyRoleMap(ctx context.Context, storage logical.Storage) (policyMap p
 }
 
 func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.Request, rolesTypesMap map[string][]string, name string, createRole bool, policyMap policyRoleMap) (err error) {
-	//TODO: write test for it
 
 	for roleType, roles := range rolesTypesMap {
 		for _, roleName := range roles {
