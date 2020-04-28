@@ -356,11 +356,11 @@ func makePolicyRoleMap(name string, req *logical.Request, ctx context.Context) (
 			log.Println(errPolicyMapDoesNotExists + " will create new")
 			err = nil
 		} else {
-			return policyMap, err
+			return
 		}
 
 	}
-	return policyMap, err
+	return
 }
 
 type policyTypes struct {
@@ -379,7 +379,7 @@ func getPolicyRoleMap(ctx context.Context, storage logical.Storage) (policyMap p
 
 	entry, err := storage.Get(ctx, venafiRolePolicyMapStorage)
 	if err != nil {
-		return policyMap, err
+		return
 	}
 
 	if entry == nil {
@@ -388,10 +388,10 @@ func getPolicyRoleMap(ctx context.Context, storage logical.Storage) (policyMap p
 
 	err = json.Unmarshal(entry.Value, &policyMap)
 	if err != nil {
-		return policyMap, err
+		return
 	}
 
-	return policyMap, err
+	return
 }
 
 func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.Request, rolesTypesMap map[string][]string, name string, createRole bool, policyMap policyRoleMap) (err error) {
@@ -401,7 +401,7 @@ func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.
 		for _, roleName := range roles {
 			role, err := b.getRole(ctx, req.Storage, roleName)
 			if err != nil {
-				return err
+				return
 			}
 			if role == nil {
 				if !createRole {
@@ -432,10 +432,10 @@ func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.
 
 			jsonEntry, err := logical.StorageEntryJSON("role/"+roleName, role)
 			if err != nil {
-				return err
+				return
 			}
 			if err := req.Storage.Put(ctx, jsonEntry); err != nil {
-				return err
+				return
 			}
 		}
 	}
@@ -443,12 +443,12 @@ func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.
 	jsonEntry, err := logical.StorageEntryJSON(venafiRolePolicyMapStorage, policyMap)
 
 	if err != nil {
-		return err
+		return
 	}
 	if err := req.Storage.Put(ctx, jsonEntry); err != nil {
-		return err
+		return
 	}
-	return nil
+	return
 }
 
 func getRolesTypeMap(data *framework.FieldData) (rolesTypesMap map[string][]string){
