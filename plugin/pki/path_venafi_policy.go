@@ -425,7 +425,7 @@ func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.
 
 			r := policyTypes{}
 
-			//copy policy values before setting new value
+			//copy old policy values from policy map before setting new value
 			r.EnforcementPolicy = policyMap.Roles[roleName].EnforcementPolicy
 			r.DefaultsPolicy = policyMap.Roles[roleName].DefaultsPolicy
 			r.ImportPolicy = policyMap.Roles[roleName].ImportPolicy

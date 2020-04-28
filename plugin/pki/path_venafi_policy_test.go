@@ -762,7 +762,7 @@ func Test_updateRolesPolicyAttributes(t *testing.T) {
 	}
 
 	enforcementRoles := []string{"role1","role2","role3"}
-	defaultsRoles := []string{"role1","role2","role3","role4"}
+	defaultsRoles := []string{"role1","role2","role3","role4","role6"}
 	importRoles := []string{"role4","role5"}
 	var rolesTypesMap map[string][]string
 	rolesTypesMap = make(map[string][]string)
@@ -773,11 +773,52 @@ func Test_updateRolesPolicyAttributes(t *testing.T) {
 
 	var policyMap policyRoleMap
 	policyMap.Roles = make(map[string]policyTypes)
+	r := policyTypes{}
+	r.EnforcementPolicy = "policyForRole6"
+	policyMap.Roles["role6"] = r
+	r = policyTypes{}
+	//This should be rewrited
+	r.DefaultsPolicy = "rewriteMePlease"
+	policyMap.Roles["role1"] = r
 
 	err = b.updateRolesPolicyAttributes(ctx, req,rolesTypesMap, "newPolicy", true, policyMap)
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	policyMapNew, err := getPolicyRoleMap(ctx, storage)
+	if err != nil {
+		return
+	}
+	fmt.Println(policyMapNew)
+
+	tm := make(map[string]string)
+
+	tm["newPolicy"] = policyMapNew.Roles["role1"].EnforcementPolicy
+	tm["newPolicy"] = policyMapNew.Roles["role2"].EnforcementPolicy
+	tm["newPolicy"] = policyMapNew.Roles["role3"].EnforcementPolicy
+
+	tm[""] = policyMapNew.Roles["role1"].ImportPolicy
+	tm[""] = policyMapNew.Roles["role2"].ImportPolicy
+	tm[""] = policyMapNew.Roles["role3"].ImportPolicy
+
+	tm["newPolicy"] = policyMapNew.Roles["role1"].DefaultsPolicy
+	tm["newPolicy"] = policyMapNew.Roles["role2"].DefaultsPolicy
+	tm["newPolicy"] = policyMapNew.Roles["role3"].DefaultsPolicy
+	tm["newPolicy"] = policyMapNew.Roles["role4"].DefaultsPolicy
+	tm["newPolicy"] = policyMapNew.Roles["role6"].DefaultsPolicy
+
+	tm["newPolicy"] = policyMapNew.Roles["role4"].ImportPolicy
+	tm["newPolicy"] = policyMapNew.Roles["role5"].ImportPolicy
+
+	tm["policyForRole6"] = policyMapNew.Roles["role6"].EnforcementPolicy
+
+	for want, have := range tm {
+		if have != want {
+			t.Fatalf("%s doesn't match %s", have, want)
+		}
+	}
+
 }
 
 func TestAssociateOrphanRolesWithDefaultPolicy(t *testing.T) {
