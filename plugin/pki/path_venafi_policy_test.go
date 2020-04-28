@@ -743,6 +743,43 @@ func TestVenafiPolicyAutoRefresh(t *testing.T) {
 
 }
 
+func Test_updateRolesPolicyAttributes(t *testing.T) {
+	// create the backend
+	config := logical.TestBackendConfig()
+	storage := &logical.InmemStorage{}
+	config.StorageView = storage
+
+	b := Backend(config)
+	err := b.Setup(context.Background(), config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx := context.Background()
+	req := &logical.Request{
+
+		Storage:   storage,
+	}
+
+	enforcementRoles := []string{"role1","role2","role3"}
+	defaultsRoles := []string{"role1","role2","role3","role4"}
+	importRoles := []string{"role4","role5"}
+	var rolesTypesMap map[string][]string
+	rolesTypesMap = make(map[string][]string)
+
+	rolesTypesMap[policyFieldEnforcementRoles] = enforcementRoles
+	rolesTypesMap[policyFieldDefaultsRoles] = defaultsRoles
+	rolesTypesMap[policyFieldImportRoles] = importRoles
+
+	var policyMap policyRoleMap
+	policyMap.Roles = make(map[string]policyTypes)
+
+	err = b.updateRolesPolicyAttributes(ctx, req,rolesTypesMap, "newPolicy", true, policyMap)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestAssociateOrphanRolesWithDefaultPolicy(t *testing.T) {
 	// create the backend
 	config := logical.TestBackendConfig()

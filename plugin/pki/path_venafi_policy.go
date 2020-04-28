@@ -323,7 +323,23 @@ func (b *backend) pathUpdateVenafiPolicy(ctx context.Context, req *logical.Reque
 	log.Printf("%s Updating roles policy attributes", logPrefixVenafiPolicyEnforcement)
 
 	rolesTypesMap := getRolesTypeMap(data)
-	err = b.updateRolesPolicyAttributes(ctx, req, rolesTypesMap, name, data.Get(policyFieldCreateRole).(bool))
+
+	//Making a list of roles
+	if name == defaultVenafiPolicyName {
+		fmt.Println("dd")
+	}
+
+	policyMap, err := getPolicyRoleMap(ctx, req.Storage)
+	if err != nil {
+		if err.Error() == errPolicyMapDoesNotExists {
+			log.Println(errPolicyMapDoesNotExists + " will create new")
+		} else {
+			return nil, err
+		}
+
+	}
+
+	err = b.updateRolesPolicyAttributes(ctx, req, rolesTypesMap, name, data.Get(policyFieldCreateRole).(bool), policyMap)
 	if err != nil {
 		return nil, err
 	}
@@ -368,18 +384,8 @@ func getPolicyRoleMap(ctx context.Context, storage logical.Storage) (policyMap p
 	return policyMap, err
 }
 
-func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.Request, rolesTypesMap map[string][]string, name string, createRole bool) error {
+func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.Request, rolesTypesMap map[string][]string, name string, createRole bool, policyMap policyRoleMap) (err error) {
 	//TODO: write test for it
-
-	policyMap, err := getPolicyRoleMap(ctx, req.Storage)
-	if err != nil {
-		if err.Error() == errPolicyMapDoesNotExists {
-			log.Println(errPolicyMapDoesNotExists + " will create new")
-		} else {
-			return err
-		}
-
-	}
 
 	for roleType, roles := range rolesTypesMap {
 		for _, roleName := range roles {
@@ -388,7 +394,7 @@ func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.
 				return err
 			}
 			if role == nil {
-				if createRole {
+				if !createRole {
 					return fmt.Errorf("role %s does not exists. can not add it to the attributes of policy %s", roleName, name)
 				} else {
 					//TODO: create role here
