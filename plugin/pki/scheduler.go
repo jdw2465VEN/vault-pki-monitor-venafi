@@ -18,6 +18,7 @@ type backgroundTask struct {
 
 type taskStorageStruct struct {
 	inited bool
+	stop   bool
 	tasks  []*backgroundTask
 	sync.RWMutex
 }
@@ -72,6 +73,10 @@ func (s *taskStorageStruct) init() {
 func (s *taskStorageStruct) loop() {
 	for {
 		s.RLock()
+		if s.stop {
+			s.RUnlock()
+			return
+		}
 		for i := range s.tasks {
 			currentTask := s.tasks[i]
 			if currentTask.currentWorkers >= currentTask.workers {

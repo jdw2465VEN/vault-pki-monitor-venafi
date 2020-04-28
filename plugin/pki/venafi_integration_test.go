@@ -312,5 +312,5 @@ func TestAllVenafiIntegrations(t *testing.T) {
 			t.Logf("Subject common name: expected %v, got %v", cert.Subject.CommonName, singleCN)
 		}
 	}
-
+	b.taskStorage.stop = true
 }

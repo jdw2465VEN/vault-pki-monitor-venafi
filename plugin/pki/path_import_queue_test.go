@@ -24,41 +24,41 @@ type getRoleDataFunc func(string, int, int) map[string]interface{}
 
 func getTPPRoleConfig(domain string, timeout, workers int) map[string]interface{} {
 	return map[string]interface{}{
-		"allowed_domains":       domain,
-		"allow_subdomains":      "true",
-		"max_ttl":               "4h",
-		"allow_bare_domains":    true,
-		"generate_lease":        true,
-		"venafi_import":         true,
-		"tpp_url":               os.Getenv("TPP_URL"),
-		"tpp_user":              os.Getenv("TPP_USER"),
-		"tpp_password":          os.Getenv("TPP_PASSWORD"),
-		"zone":                  os.Getenv("TPP_ZONE"),
-		"trust_bundle_file":     os.Getenv("TRUST_BUNDLE"),
-		"import_timeout": timeout,
-		"import_workers": workers,
+		"allowed_domains":    domain,
+		"allow_subdomains":   "true",
+		"max_ttl":            "4h",
+		"allow_bare_domains": true,
+		"generate_lease":     true,
+		"venafi_import":      true,
+		"tpp_url":            os.Getenv("TPP_URL"),
+		"tpp_user":           os.Getenv("TPP_USER"),
+		"tpp_password":       os.Getenv("TPP_PASSWORD"),
+		"zone":               os.Getenv("TPP_ZONE"),
+		"trust_bundle_file":  os.Getenv("TRUST_BUNDLE"),
+		"import_timeout":     timeout,
+		"import_workers":     workers,
 	}
 }
 
 func getCloudRoleConfig(domain string, timeout, workers int) map[string]interface{} {
 	return map[string]interface{}{
-		"allowed_domains":       domain,
-		"allow_subdomains":      "true",
-		"max_ttl":               "4h",
-		"allow_bare_domains":    true,
-		"generate_lease":        true,
-		"venafi_import":         true,
-		"apikey":                os.Getenv("CLOUD_APIKEY"),
-		"cloud_url":             os.Getenv("CLOUD_URL"),
-		"zone":                  os.Getenv("CLOUD_ZONE"),
-		"trust_bundle_file":     os.Getenv("TRUST_BUNDLE"),
-		"import_timeout": timeout,
-		"import_workers": workers,
-		"organization":          "Venafi Inc.",
-		"ou":                    "Integration",
-		"locality":              "Salt Lake",
-		"province":              "Utah",
-		"country":               "US",
+		"allowed_domains":    domain,
+		"allow_subdomains":   "true",
+		"max_ttl":            "4h",
+		"allow_bare_domains": true,
+		"generate_lease":     true,
+		"venafi_import":      true,
+		"apikey":             os.Getenv("CLOUD_APIKEY"),
+		"cloud_url":          os.Getenv("CLOUD_URL"),
+		"zone":               os.Getenv("CLOUD_ZONE"),
+		"trust_bundle_file":  os.Getenv("TRUST_BUNDLE"),
+		"import_timeout":     timeout,
+		"import_workers":     workers,
+		"organization":       "Venafi Inc.",
+		"ou":                 "Integration",
+		"locality":           "Salt Lake",
+		"province":           "Utah",
+		"country":            "US",
 	}
 }
 
@@ -240,7 +240,7 @@ func testBackend_pathImport(t *testing.T, getRoleData getRoleDataFunc, getConnec
 	if cert.Subject.CommonName != singleCN {
 		t.Fatalf("incorrect subject common name: expected %v, got %v", cert.Subject.CommonName, singleCN)
 	}
-
+	b.taskStorage.stop = true
 }
 
 func TestBackend_PathImportToTPPTwice(t *testing.T) {
@@ -370,6 +370,7 @@ func TestBackend_PathImportToTPPTwice(t *testing.T) {
 			log.Printf("Subject common name: expected %v, got %v", cert.Subject.CommonName, singleCN)
 		}
 	}
+	b.taskStorage.stop = true
 }
 
 func TestBackend_PathImportToTPPMultipleCerts(t *testing.T) {
@@ -530,7 +531,7 @@ func TestBackend_PathImportToTPPMultipleCerts(t *testing.T) {
 			log.Printf("Subject common name: expected %v, got %v", cert.Subject.CommonName, singleCN)
 		}
 	}
-
+	b.taskStorage.stop = true
 }
 
 func TestCleanupImportToTPP(t *testing.T) {
@@ -555,6 +556,7 @@ func TestCleanupImportToTPP(t *testing.T) {
 
 	//cleanup non existant role. no problem should occur
 	b.cleanupImportToTPP("test-role", ctx, req)
+	b.taskStorage.stop = true
 }
 
 func Test_fillImportQueueTask(t *testing.T) {
@@ -688,4 +690,5 @@ func Test_fillImportQueueTask(t *testing.T) {
 	} else {
 		log.Printf("Subject common name: expected %v, got %v", cert.Subject.CommonName, singleCN)
 	}
+	b.taskStorage.stop = true
 }

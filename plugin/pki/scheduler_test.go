@@ -37,6 +37,7 @@ func Test_scheduler_register(t *testing.T) {
 			t.Fatalf("workers should be %v", n)
 		}
 	}
+	s.stop = true
 }
 
 func Test_scheduler_del(t *testing.T) {
@@ -69,6 +70,7 @@ func Test_scheduler_del(t *testing.T) {
 	if s.tasks[0].name != "3" || s.tasks[1].name != "5" {
 		t.Fatal("incorrect tasks was deleted")
 	}
+	s.stop = true
 }
 
 func Test_scheduler_concurency(t *testing.T) {
@@ -98,6 +100,7 @@ func Test_scheduler_concurency(t *testing.T) {
 	if globalCounter < int64(tasksCount) || globalCounter > threads*iterations {
 		t.Fatalf("something wrong with incrementer value: %v. should be between %v and %v", globalCounter, tasksCount, threads*iterations)
 	}
+	s.stop = true
 }
 
 func Test_scheduler_running(t *testing.T) {
@@ -114,4 +117,5 @@ func Test_scheduler_running(t *testing.T) {
 	if globalCounter != iterations*3 {
 		t.Fatalf("global counter should be %v but it is %v", iterations*3, globalCounter)
 	}
+	s.stop = true
 }

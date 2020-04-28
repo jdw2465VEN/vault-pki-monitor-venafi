@@ -133,6 +133,7 @@ func TestSyncRoleWithTPPPolicy(t *testing.T) {
 
 	t.Log("Checking modified role entry")
 	checkRoleEntry(t, *roleEntryData, wantTPPRoleEntry2)
+	b.taskStorage.stop = true
 }
 
 func TestIntegrationSyncRoleWithPolicy(t *testing.T) {
@@ -186,6 +187,7 @@ func TestIntegrationSyncRoleWithPolicy(t *testing.T) {
 
 	t.Log("Checking modified role entry")
 	checkRoleEntry(t, *roleEntryData, wantTPPRoleEntry)
+	b.taskStorage.stop = true
 }
 
 func TestSyncRoleWithCloudPolicy(t *testing.T) {
@@ -239,6 +241,7 @@ func TestSyncRoleWithCloudPolicy(t *testing.T) {
 
 	t.Log("Checking modified role entry")
 	checkRoleEntry(t, *roleEntryData, wantCloudRoleEntry)
+	b.taskStorage.stop = true
 }
 
 func TestSyncMultipleRolesWithTPPPolicy(t *testing.T) {
@@ -400,6 +403,7 @@ func TestSyncMultipleRolesWithTPPPolicy(t *testing.T) {
 	if resp.Data["keys"] == nil {
 		t.Fatalf("Expected there will be roles in the keys list")
 	}
+	b.taskStorage.stop = true
 }
 
 func Test_backend_getPKIRoleEntry(t *testing.T) {
@@ -458,6 +462,7 @@ func Test_backend_getPKIRoleEntry(t *testing.T) {
 	if have != want {
 		t.Fatalf("%s doesn't match %s", have, want)
 	}
+	b.taskStorage.stop = true
 }
 
 func Test_backend_getVenafiPolicyParams(t *testing.T) {
@@ -495,8 +500,9 @@ func Test_backend_getVenafiPolicyParams(t *testing.T) {
 	if have != want {
 		t.Fatalf("%s doesn't match %s", have, want)
 	}
+	b.taskStorage.stop = true
 }
 
 func TestAutoRefresh(t *testing.T) {
-//TODO: make it
+	//TODO: make it
 }

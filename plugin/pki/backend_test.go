@@ -1549,6 +1549,7 @@ func TestBackend_PathFetchCertList(t *testing.T) {
 	if len(resp.Data["keys"].([]string)) != 10 {
 		t.Fatalf("failed to list all 10 certs")
 	}
+	b.taskStorage.stop = true
 }
 
 func TestBackend_SignVerbatim(t *testing.T) {
@@ -1735,6 +1736,7 @@ func TestBackend_SignVerbatim(t *testing.T) {
 	if math.Abs(float64(resp.Secret.TTL-(5*time.Hour))) > float64(5*time.Hour) {
 		t.Fatalf("ttl not default; wanted %v, got %v", b.System().DefaultLeaseTTL(), resp.Secret.TTL)
 	}
+	b.taskStorage.stop = true
 }
 
 func TestBackend_Root_Idempotency(t *testing.T) {
@@ -1836,6 +1838,7 @@ func TestBackend_Root_Idempotency(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 }
 
 func TestBackend_SignIntermediate_AllowedPastCA(t *testing.T) {
@@ -2090,6 +2093,7 @@ func TestBackend_SignSelfIssued(t *testing.T) {
 	if newCert.Subject.CommonName != "foo.bar.com" {
 		t.Fatalf("unexpected common name on new cert: %s", newCert.Subject.CommonName)
 	}
+	b.taskStorage.stop = true
 }
 
 // This is a really tricky test because the Go stdlib asn1 package is incapable

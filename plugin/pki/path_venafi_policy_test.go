@@ -254,6 +254,7 @@ func Test_pathShowVenafiPolicyMap(t *testing.T) {
 	if want != have {
 		t.Fatalf("Policy should be %s but we have %s", want, have)
 	}
+	b.taskStorage.stop = true
 }
 
 //TODO: add test with empty organization
