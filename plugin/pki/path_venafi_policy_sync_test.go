@@ -432,31 +432,17 @@ func Test_backend_getPKIRoleEntry(t *testing.T) {
 	if entry == nil {
 		t.Fatal("role entry should not be nil")
 	}
-	var want string
-	var have string
 
-	want = roleData["organization"].(string)
-	have = entry.Organization[0]
-	if have != want {
-		t.Fatalf("%s doesn't match %s", have, want)
-	}
+	tm := make(map[string]string)
+	tm[roleData["organization"].(string)] = entry.Organization[0]
+	tm[roleData["ou"].(string)] = entry.OU[0]
+	tm[roleData["locality"].(string)] = entry.Locality[0]
+	tm[roleData["province"].(string)] = entry.Province[0]
 
-	want = roleData["ou"].(string)
-	have = entry.OU[0]
-	if have != want {
-		t.Fatalf("%s doesn't match %s", have, want)
-	}
-
-	want = roleData["locality"].(string)
-	have = entry.Locality[0]
-	if have != want {
-		t.Fatalf("%s doesn't match %s", have, want)
-	}
-
-	want = roleData["province"].(string)
-	have = entry.Province[0]
-	if have != want {
-		t.Fatalf("%s doesn't match %s", have, want)
+	for want, have := range tm {
+		if have != want {
+			t.Fatalf("%s doesn't match %s", have, want)
+		}
 	}
 }
 
