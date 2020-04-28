@@ -279,8 +279,6 @@ func canDoRefresh(LastPolicyUpdateTime, AutoRefreshInterval int64) bool {
 	log.Printf("%s check last policy updated time", logPrefixVenafiPolicyEnforcement)
 	timePassed := time.Now().Unix() - LastPolicyUpdateTime
 
-	//update only if needed
-	//TODO: Make test to check this refresh
 	if (timePassed) < AutoRefreshInterval {
 		return false
 	}
