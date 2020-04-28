@@ -324,19 +324,9 @@ func (b *backend) pathUpdateVenafiPolicy(ctx context.Context, req *logical.Reque
 
 	rolesTypesMap := getRolesTypeMap(data)
 
-	//Making a list of roles
-	if name == defaultVenafiPolicyName {
-		fmt.Println("dd")
-	}
-
-	policyMap, err := getPolicyRoleMap(ctx, req.Storage)
+    policyMap, err := makePolicyRoleMap(name, req, ctx)
 	if err != nil {
-		if err.Error() == errPolicyMapDoesNotExists {
-			log.Println(errPolicyMapDoesNotExists + " will create new")
-		} else {
-			return nil, err
-		}
-
+		return nil, err
 	}
 
 	err = b.updateRolesPolicyAttributes(ctx, req, rolesTypesMap, name, data.Get(policyFieldCreateRole).(bool), policyMap)
@@ -351,6 +341,26 @@ func (b *backend) pathUpdateVenafiPolicy(ctx context.Context, req *logical.Reque
 		Data: respData,
 	}, nil
 
+}
+
+func makePolicyRoleMap(name string, req *logical.Request, ctx context.Context) (policyMap policyRoleMap, err error) {
+
+	//Making a list of roles
+	if name == defaultVenafiPolicyName {
+		fmt.Println("dd")
+	}
+
+	policyMap, err = getPolicyRoleMap(ctx, req.Storage)
+	if err != nil {
+		if err.Error() == errPolicyMapDoesNotExists {
+			log.Println(errPolicyMapDoesNotExists + " will create new")
+			err = nil
+		} else {
+			return policyMap, err
+		}
+
+	}
+	return policyMap, err
 }
 
 type policyTypes struct {
