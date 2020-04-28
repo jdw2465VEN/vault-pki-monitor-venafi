@@ -345,11 +345,6 @@ func (b *backend) pathUpdateVenafiPolicy(ctx context.Context, req *logical.Reque
 
 func makePolicyRoleMap(name string, req *logical.Request, ctx context.Context) (policyMap policyRoleMap, err error) {
 
-	//Making a list of roles
-	if name == defaultVenafiPolicyName {
-		fmt.Println("dd")
-	}
-
 	policyMap, err = getPolicyRoleMap(ctx, req.Storage)
 	if err != nil {
 		if err.Error() == errPolicyMapDoesNotExists {
@@ -359,6 +354,22 @@ func makePolicyRoleMap(name string, req *logical.Request, ctx context.Context) (
 			return
 		}
 
+	}
+	//Making a list of roles
+	if name == defaultVenafiPolicyName {
+		roles, err := req.Storage.List(ctx, "role/")
+		if err != nil {
+			return policyMap, err
+		}
+		for _,role := range roles {
+			if _, ok := policyMap.Roles[role]; !ok {
+				log.Printf("%s adding role %s to map", logPrefixVenafiPolicyEnforcement, role)
+				r := policyTypes{}
+				r.EnforcementPolicy = name
+				r.DefaultsPolicy = name
+				policyMap.Roles[role] = r
+			}
+		}
 	}
 	return
 }
@@ -401,7 +412,7 @@ func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.
 		for _, roleName := range roles {
 			role, err := b.getRole(ctx, req.Storage, roleName)
 			if err != nil {
-				return
+				return err
 			}
 			if role == nil {
 				if !createRole {
@@ -432,10 +443,10 @@ func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.
 
 			jsonEntry, err := logical.StorageEntryJSON("role/"+roleName, role)
 			if err != nil {
-				return
+				return err
 			}
 			if err := req.Storage.Put(ctx, jsonEntry); err != nil {
-				return
+				return err
 			}
 		}
 	}
@@ -446,7 +457,7 @@ func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.
 		return
 	}
 	if err := req.Storage.Put(ctx, jsonEntry); err != nil {
-		return
+		return err
 	}
 	return
 }
