@@ -322,7 +322,8 @@ func (b *backend) pathUpdateVenafiPolicy(ctx context.Context, req *logical.Reque
 
 	log.Printf("%s Updating roles policy attributes", logPrefixVenafiPolicyEnforcement)
 
-	err = b.updateRolesPolicyAttributes(ctx, req, data, name)
+	rolesTypesMap := getRolesTypeMap(data)
+	err = b.updateRolesPolicyAttributes(ctx, req, rolesTypesMap, name, data.Get(policyFieldCreateRole).(bool))
 	if err != nil {
 		return nil, err
 	}
@@ -367,7 +368,7 @@ func getPolicyRoleMap(ctx context.Context, storage logical.Storage) (policyMap p
 	return policyMap, err
 }
 
-func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.Request, data *framework.FieldData, name string) error {
+func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.Request, rolesTypesMap map[string][]string, name string, createRole bool) error {
 	//TODO: write test for it
 
 	policyMap, err := getPolicyRoleMap(ctx, req.Storage)
@@ -380,40 +381,14 @@ func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.
 
 	}
 
-	//temp struct for testing
-	type rolesTypesData struct {
-		enforcementRoles []string
-		defaultsRoles    []string
-		importRoles      []string
-	}
-
-	var rolesData rolesTypesData
-
-	for _, roleType := range []string{policyFieldEnforcementRoles, policyFieldDefaultsRoles, policyFieldImportRoles} {
-		for _, roleName := range data.Get(roleType).([]string) {
-			switch roleType {
-			case policyFieldEnforcementRoles:
-				rolesData.enforcementRoles = append(rolesData.enforcementRoles, roleName)
-			case policyFieldDefaultsRoles:
-				rolesData.defaultsRoles = append(rolesData.defaultsRoles, roleName)
-			case policyFieldImportRoles:
-				rolesData.importRoles = append(rolesData.importRoles, roleName)
-			}
-		}
-	}
-
-	//temp map for testing
-	rolesTypesMap := getRolesTypeMap(data)
-	log.Println(rolesTypesMap)
-
-	for _, roleType := range []string{policyFieldEnforcementRoles, policyFieldDefaultsRoles, policyFieldImportRoles} {
-		for _, roleName := range data.Get(roleType).([]string) {
+	for roleType, roles := range rolesTypesMap {
+		for _, roleName := range roles {
 			role, err := b.getRole(ctx, req.Storage, roleName)
 			if err != nil {
 				return err
 			}
 			if role == nil {
-				if data.Get(policyFieldCreateRole).(bool) {
+				if createRole {
 					return fmt.Errorf("role %s does not exists. can not add it to the attributes of policy %s", roleName, name)
 				} else {
 					//TODO: create role here

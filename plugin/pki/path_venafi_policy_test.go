@@ -751,6 +751,7 @@ func TestAssociateOrphanRolesWithDefaultPolicy(t *testing.T) {
 	testRoleName2 := "test-venafi-role2"
 	testRoleName3 := "test-venafi-role3"
 	testRoleName4 := "test-venafi-role4"
+	testRoleName5 := "test-venafi-role5"
 	config.StorageView = storage
 
 	b := Backend(config)
@@ -771,9 +772,14 @@ func TestAssociateOrphanRolesWithDefaultPolicy(t *testing.T) {
 	t.Log("Setting up fourth role")
 	b.setupRole(t, testRoleName4, storage, roleData)
 
+	t.Log("Setting up fifth role")
+	b.setupRole(t, testRoleName5, storage, roleData)
+
 	t.Log("Setting up non default policy")
 	policy := copyMap(policyTPPData)
 	policy[policyFieldDefaultsRoles] = fmt.Sprintf("%s,%s", testRoleName, testRoleName2)
+	policy[policyFieldEnforcementRoles] = fmt.Sprintf("%s,%s", testRoleName, testRoleName2)
+	policy[policyFieldImportRoles] = fmt.Sprintf("%s,%s,%s", testRoleName, testRoleName2, testRoleName5)
 	writePolicy(b, storage, policy, t, "non-default")
 
 	t.Log("Setting up default policy. Other roles should be added to it")
