@@ -481,19 +481,18 @@ func Test_backend_getVenafiPolicyParams(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var want string
-	var have string
 
-	want = wantTPPRoleEntry.Organization[0]
-	have = venafiPolicyEntry.Organization[0]
-	if have != want {
-		t.Fatalf("%s doesn't match %s", have, want)
-	}
+	tm := make(map[string]string)
+	tm[wantTPPRoleEntry.Organization[0]] = venafiPolicyEntry.Organization[0]
+	tm[wantTPPRoleEntry.OU[0]] = venafiPolicyEntry.OU[0]
+	tm[wantTPPRoleEntry.Locality[0]] = venafiPolicyEntry.Locality[0]
+	tm[wantTPPRoleEntry.Country[0]] = venafiPolicyEntry.Country[0]
+	tm[wantTPPRoleEntry.Province[0]] = venafiPolicyEntry.Province[0]
 
-	want = wantTPPRoleEntry.OU[0]
-	have = venafiPolicyEntry.OU[0]
-	if have != want {
-		t.Fatalf("%s doesn't match %s", have, want)
+	for want, have := range tm {
+		if have != want {
+			t.Fatalf("%s doesn't match %s", have, want)
+		}
 	}
 }
 
