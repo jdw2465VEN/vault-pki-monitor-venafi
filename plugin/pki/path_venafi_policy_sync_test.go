@@ -497,6 +497,26 @@ func Test_backend_getVenafiPolicyParams(t *testing.T) {
 	}
 }
 
-func TestAutoRefresh(t *testing.T) {
-
+func Test_canDoRefresh(t *testing.T) {
+	type args struct {
+		LastPolicyUpdateTime int64
+		AutoRefreshInterval  int64
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{"not updated yet", args{LastPolicyUpdateTime: 0, AutoRefreshInterval: 10}, true},
+		{"just updated", args{LastPolicyUpdateTime: time.Now().Unix(), AutoRefreshInterval: 10}, false},
+		{"updated 9 sec ago", args{LastPolicyUpdateTime: time.Now().Unix() - int64(9), AutoRefreshInterval: 10}, false},
+		{"updated 11 sec ago", args{LastPolicyUpdateTime: time.Now().Unix() - int64(11), AutoRefreshInterval: 10}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := canDoRefresh(tt.args.LastPolicyUpdateTime, tt.args.AutoRefreshInterval); got != tt.want {
+				t.Errorf("canDoRefresh() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
