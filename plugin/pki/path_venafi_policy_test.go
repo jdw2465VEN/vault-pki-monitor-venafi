@@ -932,7 +932,7 @@ func Test_getPolicyRoleMap(t *testing.T) {
 		want string
 	}{
 		{"Check policy1",policyMapGot.Roles["role1"].EnforcementPolicy,"policy1"},
-		{"Check policy2",policyMapGot.Roles["role2"].EnforcementPolicy,"policy2"},
+		{"Check policy2",policyMapGot.Roles["role2"].DefaultsPolicy,"policy2"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
