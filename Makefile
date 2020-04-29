@@ -5,7 +5,7 @@ CURRENT_DIR := $(patsubst %/,%,$(dir $(realpath $(MKFILE_PATH))))
 
 # List of tests to run
 TEST ?= $$(go list ./... | grep -v /vendor/ | grep -v /e2e)
-TEST_TIMEOUT?=6m
+TEST_TIMEOUT?=20m
 GOFMT_FILES?=$$(find . -name '*.go' |grep -v vendor)
 
 #Plugin information
@@ -51,7 +51,8 @@ VAULT_CLIENT_TIMEOUT = 180s
 
 test: linter
 	VAULT_ACC=1 \
-	go test $(TEST) $(TESTARGS) -v -timeout=$(TEST_TIMEOUT) -parallel=20
+	go get gotest.tools/gotestsum
+	gotestsum --junitfile  junit.xml  -- -timeout $(TEST_TIMEOUT) ./...
 
 policy_test:
 	go test github.com/Venafi/vault-pki-monitor-venafi/plugin/pki -run ^TestBackend_VenafiPolicy*$

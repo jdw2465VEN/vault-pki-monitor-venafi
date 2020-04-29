@@ -18,6 +18,7 @@ type backgroundTask struct {
 
 type taskStorageStruct struct {
 	inited bool
+	stop   bool
 	tasks  []*backgroundTask
 	sync.RWMutex
 }
@@ -72,14 +73,18 @@ func (s *taskStorageStruct) init() {
 func (s *taskStorageStruct) loop() {
 	for {
 		s.RLock()
+		if s.stop {
+			s.RUnlock()
+			return
+		}
 		for i := range s.tasks {
-			if s.tasks[i].currentWorkers >= s.tasks[i].workers {
-				continue
-			}
-			if time.Since(s.tasks[i].lastRun) < s.tasks[i].interval {
-				continue
-			}
 			currentTask := s.tasks[i]
+			if currentTask.currentWorkers >= currentTask.workers {
+				continue
+			}
+			if time.Since(currentTask.lastRun) < currentTask.interval {
+				continue
+			}
 			atomic.AddInt64(&currentTask.currentWorkers, 1)
 			go func(counter *int64) {
 				defer func(counter *int64) {
