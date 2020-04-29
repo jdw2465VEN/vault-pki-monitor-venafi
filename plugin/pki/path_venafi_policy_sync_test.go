@@ -437,16 +437,22 @@ func Test_backend_getPKIRoleEntry(t *testing.T) {
 		t.Fatal("role entry should not be nil")
 	}
 
-	tm := make(map[string]string)
-	tm[roleData["organization"].(string)] = entry.Organization[0]
-	tm[roleData["ou"].(string)] = entry.OU[0]
-	tm[roleData["locality"].(string)] = entry.Locality[0]
-	tm[roleData["province"].(string)] = entry.Province[0]
-
-	for want, have := range tm {
-		if have != want {
-			t.Fatalf("%s doesn't match %s", have, want)
-		}
+	tests := []struct {
+		name string
+		have string
+		want string
+	}{
+		{"check org", roleData["organization"].(string), entry.Organization[0]},
+		{"check ou", roleData["ou"].(string), entry.OU[0]},
+		{"check locality", roleData["locality"].(string), entry.Locality[0]},
+		{"check province", roleData["province"].(string), entry.Province[0]},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.have != tt.want {
+				t.Fatalf("%s doesn't match %s", tt.have, tt.want)
+			}
+		})
 	}
 	b.taskStorage.stop = true
 }
@@ -472,18 +478,23 @@ func Test_backend_getVenafiPolicyParams(t *testing.T) {
 		t.Fatal(err)
 	}
 
-
-	tm := make(map[string]string)
-	tm[wantTPPRoleEntry.Organization[0]] = venafiPolicyEntry.Organization[0]
-	tm[wantTPPRoleEntry.OU[0]] = venafiPolicyEntry.OU[0]
-	tm[wantTPPRoleEntry.Locality[0]] = venafiPolicyEntry.Locality[0]
-	tm[wantTPPRoleEntry.Country[0]] = venafiPolicyEntry.Country[0]
-	tm[wantTPPRoleEntry.Province[0]] = venafiPolicyEntry.Province[0]
-
-	for want, have := range tm {
-		if have != want {
-			t.Fatalf("%s doesn't match %s", have, want)
-		}
+	tests := []struct {
+		name string
+		have string
+		want string
+	}{
+		{"Check policy Org",wantTPPRoleEntry.Organization[0],venafiPolicyEntry.Organization[0]},
+		{"Check policy OU",wantTPPRoleEntry.OU[0],venafiPolicyEntry.OU[0]},
+		{"Check policy locality",wantTPPRoleEntry.Locality[0],venafiPolicyEntry.Locality[0]},
+		{"Check policy Country",wantTPPRoleEntry.Country[0],venafiPolicyEntry.Country[0]},
+		{"Check policy province",wantTPPRoleEntry.Province[0],venafiPolicyEntry.Province[0]},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.have != tt.want {
+				t.Fatalf("%s doesn't match %s", tt.have, tt.want)
+			}
+		})
 	}
 	b.taskStorage.stop = true
 }

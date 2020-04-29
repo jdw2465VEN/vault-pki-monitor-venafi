@@ -926,15 +926,22 @@ func Test_getPolicyRoleMap(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tm := make(map[string]string)
-	tm["policy1"] = policyMapGot.Roles["role1"].EnforcementPolicy
-	tm["policy2"] = policyMapGot.Roles["role2"].EnforcementPolicy
-
-	for want, have := range tm {
-		if have != want {
-			t.Fatalf("%s doesn't match %s", have, want)
-		}
+	tests := []struct {
+		name string
+		have string
+		want string
+	}{
+		{"Check policy1",policyMapGot.Roles["role1"].EnforcementPolicy,"policy1"},
+		{"Check policy2",policyMapGot.Roles["role2"].EnforcementPolicy,"policy2"},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.have != tt.want {
+				t.Fatalf("%s doesn't match %s", tt.have, tt.want)
+			}
+		})
+	}
+
 }
 
 func TestAssociateOrphanRolesWithDefaultPolicy(t *testing.T) {
