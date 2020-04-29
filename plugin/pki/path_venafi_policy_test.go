@@ -759,12 +759,12 @@ func Test_updateRolesPolicyAttributes(t *testing.T) {
 	ctx := context.Background()
 	req := &logical.Request{
 
-		Storage:   storage,
+		Storage: storage,
 	}
 
-	enforcementRoles := []string{"role1","role2","role3"}
-	defaultsRoles := []string{"role1","role2","role3","role4","role6"}
-	importRoles := []string{"role4","role5"}
+	enforcementRoles := []string{"role1", "role2", "role3"}
+	defaultsRoles := []string{"role1", "role2", "role3", "role4", "role6"}
+	importRoles := []string{"role4", "role5"}
 	var rolesTypesMap map[string][]string
 	rolesTypesMap = make(map[string][]string)
 
@@ -782,7 +782,7 @@ func Test_updateRolesPolicyAttributes(t *testing.T) {
 	r.DefaultsPolicy = "rewriteMePlease"
 	policyMap.Roles["role1"] = r
 
-	err = b.updateRolesPolicyAttributes(ctx, req,rolesTypesMap, "newPolicy", true, policyMap)
+	err = b.updateRolesPolicyAttributes(ctx, req, rolesTypesMap, "newPolicy", true, policyMap)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -793,33 +793,109 @@ func Test_updateRolesPolicyAttributes(t *testing.T) {
 	}
 	fmt.Println(policyMapNew)
 
-	tm := make(map[string]string)
+	tests := []struct {
+		have string
+		want string
+	}{
+		{policyMapNew.Roles["role1"].EnforcementPolicy, "newPolicy"},
+		{ policyMapNew.Roles["role1"].EnforcementPolicy, 	"newPolicy" },
+		{ policyMapNew.Roles["role2"].EnforcementPolicy, 	"newPolicy" },
+		{ policyMapNew.Roles["role3"].EnforcementPolicy, 	"newPolicy" },
+		{ policyMapNew.Roles["role1"].ImportPolicy, 	"" },
+		{ policyMapNew.Roles["role2"].ImportPolicy, 	"" },
+		{ policyMapNew.Roles["role3"].ImportPolicy, 	"" },
+		{ policyMapNew.Roles["role1"].DefaultsPolicy, 	"newPolicy" },
+		{ policyMapNew.Roles["role2"].DefaultsPolicy, 	"newPolicy" },
+		{ policyMapNew.Roles["role3"].DefaultsPolicy, 	"newPolicy" },
+		{ policyMapNew.Roles["role4"].DefaultsPolicy, 	"newPolicy" },
+		{ policyMapNew.Roles["role6"].DefaultsPolicy, 	"newPolicy" },
+		{ policyMapNew.Roles["role4"].ImportPolicy, 	"newPolicy" },
+		{ policyMapNew.Roles["role5"].ImportPolicy, 	"newPolicy" },
+		{ policyMapNew.Roles["role6"].EnforcementPolicy, 	"policyForRole6" },
 
-	tm["newPolicy"] = policyMapNew.Roles["role1"].EnforcementPolicy
-	tm["newPolicy"] = policyMapNew.Roles["role2"].EnforcementPolicy
-	tm["newPolicy"] = policyMapNew.Roles["role3"].EnforcementPolicy
-
-	tm[""] = policyMapNew.Roles["role1"].ImportPolicy
-	tm[""] = policyMapNew.Roles["role2"].ImportPolicy
-	tm[""] = policyMapNew.Roles["role3"].ImportPolicy
-
-	tm["newPolicy"] = policyMapNew.Roles["role1"].DefaultsPolicy
-	tm["newPolicy"] = policyMapNew.Roles["role2"].DefaultsPolicy
-	tm["newPolicy"] = policyMapNew.Roles["role3"].DefaultsPolicy
-	tm["newPolicy"] = policyMapNew.Roles["role4"].DefaultsPolicy
-	tm["newPolicy"] = policyMapNew.Roles["role6"].DefaultsPolicy
-
-	tm["newPolicy"] = policyMapNew.Roles["role4"].ImportPolicy
-	tm["newPolicy"] = policyMapNew.Roles["role5"].ImportPolicy
-
-	tm["policyForRole6"] = policyMapNew.Roles["role6"].EnforcementPolicy
-
-	for want, have := range tm {
-		if have != want {
-			t.Fatalf("%s doesn't match %s", have, want)
-		}
+	}
+	for _, tt := range tests {
+		t.Run("check policy", func(t *testing.T) {
+			if tt.have != tt.want {
+				t.Fatalf("%s doesn't match %s", tt.have, tt.want)
+			}
+		})
 	}
 
+	t.Log("Checking that roles was created by policy")
+	//roleReq := &logical.Request{
+	//	Operation: logical.UpdateOperation,
+	//	Path:      "roles/testrole_pkixfields",
+	//	Storage:   storage,
+	//	Data:      roleData,
+	//}
+	//
+	//resp, err := b.HandleRequest(context.Background(), roleReq)
+	//if err != nil || (resp != nil && resp.IsError()) {
+	//	t.Fatalf("bad: err: %v resp: %#v", err, resp)
+	//}
+	//
+	//roleReq.Operation = logical.ReadOperation
+	//resp, err = b.HandleRequest(context.Background(), roleReq)
+	//if err != nil || (resp != nil && resp.IsError()) {
+	//	t.Fatalf("bad: err: %v resp: %#v", err, resp)
+	//}
+	//
+	//origCountry := roleData["country"].([]string)
+	//respCountry := resp.Data["country"].([]string)
+	//if !strutil.StrListSubset(origCountry, respCountry) {
+	//	t.Fatalf("country did not match values set in role")
+	//} else if len(origCountry) != len(respCountry) {
+	//	t.Fatalf("country did not have same number of values set in role")
+	//}
+}
+
+func Test_updateRolesPolicyAttributes_DoNotCreateRole(t *testing.T) {
+	// create the backend
+	config := logical.TestBackendConfig()
+	storage := &logical.InmemStorage{}
+	config.StorageView = storage
+
+	b := Backend(config)
+	err := b.Setup(context.Background(), config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx := context.Background()
+	req := &logical.Request{
+		Storage: storage,
+	}
+
+	enforcementRoles := []string{"role1", "role2", "role3"}
+	defaultsRoles := []string{"role1", "role2", "role3", "role4", "role6"}
+	importRoles := []string{"role4", "role5"}
+	var rolesTypesMap map[string][]string
+	rolesTypesMap = make(map[string][]string)
+
+	rolesTypesMap[policyFieldEnforcementRoles] = enforcementRoles
+	rolesTypesMap[policyFieldDefaultsRoles] = defaultsRoles
+	rolesTypesMap[policyFieldImportRoles] = importRoles
+
+	var policyMap policyRoleMap
+	policyMap.Roles = make(map[string]policyTypes)
+	r := policyTypes{}
+	r.EnforcementPolicy = "default"
+	policyMap.Roles["role6"] = r
+	r = policyTypes{}
+	r.DefaultsPolicy = "default"
+	policyMap.Roles["role1"] = r
+
+	err = b.updateRolesPolicyAttributes(ctx, req, rolesTypesMap, "default", false, policyMap)
+	if err == nil {
+		t.Fatal("Update attribute should fail if role does not exists")
+	}
+
+	expectedErr := "role role1 does not exists. can not add it to the attributes of policy default"
+	if err.Error() != expectedErr {
+		t.Fatalf("Expected error is %s, but we have: %s", expectedErr, err)
+	}
+	t.Logf("Err: %s", err)
 }
 
 func Test_getPolicyRoleMap(t *testing.T) {
@@ -910,7 +986,7 @@ func TestAssociateOrphanRolesWithDefaultPolicy(t *testing.T) {
 		return
 	}
 	t.Log("Checking that roles 3 and 4 is in default policy")
-	for _,name := range []string{testRoleName3, testRoleName4} {
+	for _, name := range []string{testRoleName3, testRoleName4} {
 		if policyMap.Roles[name].DefaultsPolicy != "default" {
 			t.Fatalf("%s role is not in default policy defaults", name)
 		}

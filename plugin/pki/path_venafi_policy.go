@@ -361,6 +361,7 @@ func makePolicyRoleMap(name string, req *logical.Request, ctx context.Context) (
 		if err != nil {
 			return policyMap, err
 		}
+		//adding roles which don't have associated policies to default policy
 		for _,role := range roles {
 			if _, ok := policyMap.Roles[role]; !ok {
 				log.Printf("%s adding role %s to map", logPrefixVenafiPolicyEnforcement, role)
