@@ -417,8 +417,9 @@ func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.
 				if !createRole {
 					return fmt.Errorf("role %s does not exists. can not add it to the attributes of policy %s", roleName, name)
 				} else {
-					//TODO: create role here
-					log.Println("Creating role", roleName)
+					//TODO: fill role entry
+					log.Println("Filling role entry", roleName)
+
 				}
 			}
 
@@ -440,6 +441,7 @@ func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.
 
 			policyMap.Roles[roleName] = r
 
+			//Save role entry to storage
 			jsonEntry, err := logical.StorageEntryJSON("role/"+roleName, role)
 			if err != nil {
 				return err
