@@ -297,7 +297,7 @@ func copyMap(m map[string]interface{}) map[string]interface{} {
 	return cp
 }
 
-func (b *backend) setupRole(t *testing.T, roleName string, storage logical.Storage, data map[string]interface{} ) {
+func (b *backend) setupRole(t *testing.T, roleName string, storage logical.Storage, data map[string]interface{}) {
 	resp, err := b.HandleRequest(context.Background(), &logical.Request{
 		Operation: logical.UpdateOperation,
 		Path:      "roles/" + roleName,

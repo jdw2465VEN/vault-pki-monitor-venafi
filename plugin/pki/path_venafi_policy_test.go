@@ -784,7 +784,11 @@ func Test_updateRolesPolicyAttributes(t *testing.T) {
 	r.DefaultsPolicy = "rewriteMePlease"
 	policyMap.Roles["role1"] = r
 
-	err = b.updateRolesPolicyAttributes(ctx, req, rolesTypesMap, "newPolicy", true, policyMap)
+	newPolicy := "newPolicy"
+	policy := copyMap(policyTPPData)
+	writePolicy(b, storage, policy, t, newPolicy)
+
+	err = b.updateRolesPolicyAttributes(ctx, req, rolesTypesMap, newPolicy, true, policyMap)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -799,20 +803,20 @@ func Test_updateRolesPolicyAttributes(t *testing.T) {
 		have string
 		want string
 	}{
-		{policyMapNew.Roles["role1"].EnforcementPolicy, "newPolicy"},
-		{policyMapNew.Roles["role1"].EnforcementPolicy, "newPolicy"},
-		{policyMapNew.Roles["role2"].EnforcementPolicy, "newPolicy"},
-		{policyMapNew.Roles["role3"].EnforcementPolicy, "newPolicy"},
+		{policyMapNew.Roles["role1"].EnforcementPolicy, newPolicy},
+		{policyMapNew.Roles["role1"].EnforcementPolicy, newPolicy},
+		{policyMapNew.Roles["role2"].EnforcementPolicy, newPolicy},
+		{policyMapNew.Roles["role3"].EnforcementPolicy, newPolicy},
 		{policyMapNew.Roles["role1"].ImportPolicy, ""},
 		{policyMapNew.Roles["role2"].ImportPolicy, ""},
 		{policyMapNew.Roles["role3"].ImportPolicy, ""},
-		{policyMapNew.Roles["role1"].DefaultsPolicy, "newPolicy"},
-		{policyMapNew.Roles["role2"].DefaultsPolicy, "newPolicy"},
-		{policyMapNew.Roles["role3"].DefaultsPolicy, "newPolicy"},
-		{policyMapNew.Roles["role4"].DefaultsPolicy, "newPolicy"},
-		{policyMapNew.Roles["role6"].DefaultsPolicy, "newPolicy"},
-		{policyMapNew.Roles["role4"].ImportPolicy, "newPolicy"},
-		{policyMapNew.Roles["role5"].ImportPolicy, "newPolicy"},
+		{policyMapNew.Roles["role1"].DefaultsPolicy, newPolicy},
+		{policyMapNew.Roles["role2"].DefaultsPolicy, newPolicy},
+		{policyMapNew.Roles["role3"].DefaultsPolicy, newPolicy},
+		{policyMapNew.Roles["role4"].DefaultsPolicy, newPolicy},
+		{policyMapNew.Roles["role6"].DefaultsPolicy, newPolicy},
+		{policyMapNew.Roles["role4"].ImportPolicy, newPolicy},
+		{policyMapNew.Roles["role5"].ImportPolicy, newPolicy},
 		{policyMapNew.Roles["role6"].EnforcementPolicy, "policyForRole6"},
 	}
 	for _, tt := range tests {
@@ -823,60 +827,57 @@ func Test_updateRolesPolicyAttributes(t *testing.T) {
 		})
 	}
 
-	t.Log("Checking that roles was created by policy")
-	roleReq := &logical.Request{
-		Operation: logical.ReadOperation,
-		Path:      "roles/role1",
-		Storage:   storage,
-	}
+	for _,roleName := range defaultsRoles {
+		t.Log("Checking that roles was created by policy")
+		roleReq := &logical.Request{
+			Operation: logical.ReadOperation,
+			Path:      "roles/"+roleName,
+			Storage:   storage,
+		}
 
-	resp, err := b.HandleRequest(context.Background(), roleReq)
-	if err != nil || (resp != nil && resp.IsError()) {
-		t.Fatalf("bad: err: %v resp: %#v", err, resp)
-	}
+		resp, err := b.HandleRequest(context.Background(), roleReq)
+		if err != nil || (resp != nil && resp.IsError()) {
+			t.Fatalf("bad: err: %v resp: %#v", err, resp)
+		}
 
-	t.Log("Checking that role values are not nil")
-	testsNotNil := []struct {
-		name string
-		have interface{}
-	}{
-		{"organization",resp.Data["organization"]},
-		{"ou",resp.Data["ou"]},
-		{"locality",resp.Data["locality"]},
-		{"province",resp.Data["province"]},
-		{"country",resp.Data["country"]},
-	}
+		t.Log("Checking that role values are not nil")
+		testsNotNil := []struct {
+			name string
+			have interface{}
+		}{
+			{"organization", resp.Data["organization"]},
+			{"ou", resp.Data["ou"]},
+			{"locality", resp.Data["locality"]},
+			{"province", resp.Data["province"]},
+			{"country", resp.Data["country"]},
+		}
 
-	for _, tt := range testsNotNil {
-		if reflect.ValueOf(tt.have).IsNil() {
-			t.Fatalf("%s is nil", tt.name)
+		for _, tt := range testsNotNil {
+			if reflect.ValueOf(tt.have).IsNil() {
+				t.Fatalf("%s is nil", tt.name)
+			}
+		}
+
+		t.Log("Checking role values")
+		testsRole := []struct {
+			have []string
+			want []string
+		}{
+			{resp.Data["organization"].([]string), wantTPPRoleEntry.Organization},
+			{resp.Data["ou"].([]string), wantTPPRoleEntry.OU},
+			{resp.Data["locality"].([]string), wantTPPRoleEntry.Locality},
+			{resp.Data["province"].([]string), wantTPPRoleEntry.Province},
+			{resp.Data["country"].([]string), wantTPPRoleEntry.Country},
+		}
+		for _, tt := range testsRole {
+			t.Run("check role", func(t *testing.T) {
+				if !strutil.StrListSubset(tt.have, tt.want) {
+					t.Fatalf("%s doesn't match %s", tt.have, tt.want)
+				}
+			})
 		}
 	}
 
-	testsRole := []struct {
-		have []string
-		want []string
-	}{
-		{resp.Data["organization"].([]string), roleData["organization"].([]string)},
-		{resp.Data["ou"].([]string), roleData["ou"].([]string)},
-		{resp.Data["locality"].([]string), roleData["locality"].([]string)},
-		{resp.Data["province"].([]string), roleData["province"].([]string)},
-		{resp.Data["country"].([]string), roleData["country"].([]string)},
-	}
-	for _, tt := range testsRole {
-		t.Run("check role", func(t *testing.T) {
-			if !strutil.StrListSubset(tt.have, tt.want) {
-				t.Fatalf("%s doesn't match %s", tt.have, tt.want)
-			}
-		})
-	}
-	origCountry := roleData["country"].([]string)
-	respCountry := resp.Data["country"].([]string)
-	if !strutil.StrListSubset(origCountry, respCountry) {
-		t.Fatalf("country did not match values set in role")
-	} else if len(origCountry) != len(respCountry) {
-		t.Fatalf("country did not have same number of values set in role")
-	}
 }
 
 func Test_updateRolesPolicyAttributes_DoNotCreateRole(t *testing.T) {
@@ -1032,5 +1033,26 @@ func TestAssociateOrphanRolesWithDefaultPolicy(t *testing.T) {
 		if policyMap.Roles[name].ImportPolicy != "" {
 			t.Fatalf("%s role should not be in policy import", name)
 		}
+	}
+}
+
+func Test_fillPolicyMapWithRoles(t *testing.T) {
+
+	type args struct {
+		policyMap  policyRoleMap
+		roleName   string
+		policyName string
+		roleType   string
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fillPolicyMapWithRoles(tt.args.policyMap, tt.args.roleName, tt.args.policyName, tt.args.roleType)
+		})
 	}
 }

@@ -483,11 +483,11 @@ func Test_backend_getVenafiPolicyParams(t *testing.T) {
 		have string
 		want string
 	}{
-		{"Check policy Org",wantTPPRoleEntry.Organization[0],venafiPolicyEntry.Organization[0]},
-		{"Check policy OU",wantTPPRoleEntry.OU[0],venafiPolicyEntry.OU[0]},
-		{"Check policy locality",wantTPPRoleEntry.Locality[0],venafiPolicyEntry.Locality[0]},
-		{"Check policy Country",wantTPPRoleEntry.Country[0],venafiPolicyEntry.Country[0]},
-		{"Check policy province",wantTPPRoleEntry.Province[0],venafiPolicyEntry.Province[0]},
+		{"Check policy Org", wantTPPRoleEntry.Organization[0], venafiPolicyEntry.Organization[0]},
+		{"Check policy OU", wantTPPRoleEntry.OU[0], venafiPolicyEntry.OU[0]},
+		{"Check policy locality", wantTPPRoleEntry.Locality[0], venafiPolicyEntry.Locality[0]},
+		{"Check policy Country", wantTPPRoleEntry.Country[0], venafiPolicyEntry.Country[0]},
+		{"Check policy province", wantTPPRoleEntry.Province[0], venafiPolicyEntry.Province[0]},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

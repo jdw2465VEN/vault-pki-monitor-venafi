@@ -324,7 +324,7 @@ func (b *backend) pathUpdateVenafiPolicy(ctx context.Context, req *logical.Reque
 
 	rolesTypesMap := getRolesTypeMap(data)
 
-    policyMap, err := makePolicyRoleMap(name, req, ctx)
+	policyMap, err := makePolicyRoleMap(name, req, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -344,7 +344,7 @@ func (b *backend) pathUpdateVenafiPolicy(ctx context.Context, req *logical.Reque
 }
 
 func makePolicyRoleMap(name string, req *logical.Request, ctx context.Context) (policyMap policyRoleMap, err error) {
-
+	//TODO: test it
 	policyMap, err = getPolicyRoleMap(ctx, req.Storage)
 	if err != nil {
 		if err.Error() == errPolicyMapDoesNotExists {
@@ -355,14 +355,16 @@ func makePolicyRoleMap(name string, req *logical.Request, ctx context.Context) (
 		}
 
 	}
-	//Making a list of roles
+	//If policy is default add all
+	//TODO: test it
 	if name == defaultVenafiPolicyName {
+		//Making a list of roles
 		roles, err := req.Storage.List(ctx, "role/")
 		if err != nil {
 			return policyMap, err
 		}
 		//adding roles which don't have associated policies to default policy
-		for _,role := range roles {
+		for _, role := range roles {
 			if _, ok := policyMap.Roles[role]; !ok {
 				log.Printf("%s adding role %s to map", logPrefixVenafiPolicyEnforcement, role)
 				r := policyTypes{}
@@ -405,8 +407,9 @@ func getPolicyRoleMap(ctx context.Context, storage logical.Storage) (policyMap p
 	return
 }
 
-func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.Request, rolesTypesMap map[string][]string, name string, createRole bool, policyMap policyRoleMap) (err error) {
+func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.Request, rolesTypesMap map[string][]string, policyName string, createRole bool, policyMap policyRoleMap) (err error) {
 
+	var updateDefaultsRolesList []string
 	for roleType, roles := range rolesTypesMap {
 		for _, roleName := range roles {
 			role, err := b.getRole(ctx, req.Storage, roleName)
@@ -415,33 +418,27 @@ func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.
 			}
 			if role == nil {
 				if !createRole {
-					return fmt.Errorf("role %s does not exists. can not add it to the attributes of policy %s", roleName, name)
+					return fmt.Errorf("role %s does not exists. can not add it to the attributes of policy %s", roleName, policyName)
 				} else {
 					//TODO: fill role entry
-					log.Println("Filling role entry", roleName)
+					if roleType == policyFieldDefaultsRoles {
+						log.Printf("Adding role %s to update defaults list", roleName)
+						updateDefaultsRolesList = append(updateDefaultsRolesList, roleName)
+					} else {
+						log.Printf("Role %s do not have defaults attribute. We will just skip filling it with defaults", roleName)
+					}
 
+				}
+			} else {
+				if roleType == policyFieldDefaultsRoles {
+					log.Printf("Adding role %s to update defaults list", roleName)
+					updateDefaultsRolesList = append(updateDefaultsRolesList, roleName)
 				}
 			}
 
-			r := policyTypes{}
+			fillPolicyMapWithRoles(policyMap, roleName, policyName, roleType)
 
-			//copy old policy values from policy map before setting new value
-			r.EnforcementPolicy = policyMap.Roles[roleName].EnforcementPolicy
-			r.DefaultsPolicy = policyMap.Roles[roleName].DefaultsPolicy
-			r.ImportPolicy = policyMap.Roles[roleName].ImportPolicy
-
-			switch roleType {
-			case policyFieldEnforcementRoles:
-				r.EnforcementPolicy = name
-			case policyFieldDefaultsRoles:
-				r.DefaultsPolicy = name
-			case policyFieldImportRoles:
-				r.ImportPolicy = name
-			}
-
-			policyMap.Roles[roleName] = r
-
-			//Save role entry to storage
+			//Save role entry to storage and sync its defaults
 			jsonEntry, err := logical.StorageEntryJSON("role/"+roleName, role)
 			if err != nil {
 				return err
@@ -460,10 +457,38 @@ func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.
 	if err := req.Storage.Put(ctx, jsonEntry); err != nil {
 		return err
 	}
+
+	//Update roles defaults
+	for _, roleToUpdateDefaults := range updateDefaultsRolesList {
+		err := b.synchronizeRoleDefaults(ctx, b.storage, roleToUpdateDefaults, policyName)
+		if err != nil {
+			return err
+		}
+	}
 	return
 }
 
-func getRolesTypeMap(data *framework.FieldData) (rolesTypesMap map[string][]string){
+func fillPolicyMapWithRoles(policyMap policyRoleMap, roleName string, policyName string, roleType string) {
+	r := policyTypes{}
+
+	//copy old policy values from policy map before setting new value
+	r.EnforcementPolicy = policyMap.Roles[roleName].EnforcementPolicy
+	r.DefaultsPolicy = policyMap.Roles[roleName].DefaultsPolicy
+	r.ImportPolicy = policyMap.Roles[roleName].ImportPolicy
+
+	switch roleType {
+	case policyFieldEnforcementRoles:
+		r.EnforcementPolicy = policyName
+	case policyFieldDefaultsRoles:
+		r.DefaultsPolicy = policyName
+	case policyFieldImportRoles:
+		r.ImportPolicy = policyName
+	}
+
+	policyMap.Roles[roleName] = r
+}
+
+func getRolesTypeMap(data *framework.FieldData) (rolesTypesMap map[string][]string) {
 	rolesTypesMap = map[string][]string{}
 	for _, roleType := range []string{policyFieldEnforcementRoles, policyFieldDefaultsRoles, policyFieldImportRoles} {
 		for _, roleName := range data.Get(roleType).([]string) {

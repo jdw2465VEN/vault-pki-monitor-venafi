@@ -144,8 +144,12 @@ func (b *backend) syncPolicyEnforcementAndRoleDefaults(conf *logical.BackendConf
 
 		for _, roleName := range rolesList.defaultsRoles {
 			log.Printf("Synchronizing role %s", roleName)
-			msg := b.synchronizeRoleDefaults(ctx, b.storage, roleName, policyName)
-			log.Printf("%s %s", logPrefixVenafiRoleyDefaults, msg)
+			syncErr := b.synchronizeRoleDefaults(ctx, b.storage, roleName, policyName)
+			if syncErr == nil {
+				log.Printf("%s finished synchronizing role %s", logPrefixVenafiRoleyDefaults, roleName)
+			} else {
+				log.Printf("%s ERROR: %s", logPrefixVenafiRoleyDefaults, syncErr)
+			}
 		}
 
 		//set new last updated
@@ -166,15 +170,16 @@ func (b *backend) syncPolicyEnforcementAndRoleDefaults(conf *logical.BackendConf
 	return err
 }
 
-func (b *backend) synchronizeRoleDefaults(ctx context.Context, storage logical.Storage, roleName string, policyName string) (msg string) {
+func (b *backend) synchronizeRoleDefaults(ctx context.Context, storage logical.Storage, roleName string, policyName string) (err error) {
+	//TODO: test it
 	//	Read previous role parameters
 	pkiRoleEntry, err := b.getPKIRoleEntry(ctx, storage, roleName)
 	if err != nil {
-		return fmt.Sprintf("%s", err)
+		return err
 	}
 
 	if pkiRoleEntry == nil {
-		return fmt.Sprintf("PKI role %s is empty or does not exist", roleName)
+		return fmt.Errorf("PKI role %s is empty or does not exist", roleName)
 	}
 
 	//Get Venafi policy in entry format
@@ -183,27 +188,27 @@ func (b *backend) synchronizeRoleDefaults(ctx context.Context, storage logical.S
 		return
 	}
 	if policyMap.Roles[roleName].DefaultsPolicy == "" {
-		return fmt.Sprintf("role %s do not have venafi_defaults_policy attribute", roleName)
+		return fmt.Errorf("role %s do not have venafi_defaults_policy attribute", roleName)
 	}
 
 	entry, err := storage.Get(ctx, venafiPolicyPath+policyName)
 	if err != nil {
-		return fmt.Sprintf("%s", err)
+		return fmt.Errorf("%s", err)
 	}
 
 	if entry == nil {
-		return "entry is nil"
+		return fmt.Errorf("entry is nil")
 	}
 
 	var venafiConfig venafiConnectionConfig
 	if err := entry.DecodeJSON(&venafiConfig); err != nil {
-		return fmt.Sprintf("error reading Venafi policy configuration: %s", err)
+		return fmt.Errorf("error reading Venafi policy configuration: %s", err)
 	}
 
 	venafiPolicyEntry, err := b.getVenafiPolicyParams(ctx, storage, policyName,
 		venafiConfig.Zone)
 	if err != nil {
-		return fmt.Sprintf("%s", err)
+		return err
 	}
 
 	//  Replace PKI entry with Venafi policy values
@@ -226,13 +231,13 @@ func (b *backend) synchronizeRoleDefaults(ctx context.Context, storage logical.S
 	// Put new entry
 	jsonEntry, err := logical.StorageEntryJSON("role/"+roleName, pkiRoleEntry)
 	if err != nil {
-		return fmt.Sprintf("Error creating json entry for storage: %s", err)
+		return fmt.Errorf("Error creating json entry for storage: %s", err)
 	}
 	if err := storage.Put(ctx, jsonEntry); err != nil {
-		return fmt.Sprintf("Error putting entry to storage: %s", err)
+		return fmt.Errorf("Error putting entry to storage: %s", err)
 	}
 
-	return fmt.Sprintf("finished synchronizing role %s", roleName)
+	return nil
 }
 
 func replacePKIValue(original *[]string, zone []string) {
