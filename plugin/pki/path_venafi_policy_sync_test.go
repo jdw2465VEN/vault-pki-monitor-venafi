@@ -492,14 +492,13 @@ func Test_backend_getVenafiPolicyParams(t *testing.T) {
 			have interface{}
 			want interface{}
 		}{
-			{"Check policy Org", venafiPolicyEntry.Organization[0],wantTPPRoleEntry.Organization[0] },
-			{"Check policy OU", venafiPolicyEntry.OU[0],wantTPPRoleEntry.OU[0] },
-			{"Check policy locality", venafiPolicyEntry.Locality[0],wantTPPRoleEntry.Locality[0] },
-			{"Check policy Country", venafiPolicyEntry.Country[0],wantTPPRoleEntry.Country[0] },
-			{"Check policy province", venafiPolicyEntry.Province[0],wantTPPRoleEntry.Province[0] },
+			{"Check policy Org", venafiPolicyEntry.Organization[0], wantTPPRoleEntry.Organization[0]},
+			{"Check policy OU", venafiPolicyEntry.OU[0], wantTPPRoleEntry.OU[0]},
+			{"Check policy locality", venafiPolicyEntry.Locality[0], wantTPPRoleEntry.Locality[0]},
+			{"Check policy Country", venafiPolicyEntry.Country[0], wantTPPRoleEntry.Country[0]},
+			{"Check policy province", venafiPolicyEntry.Province[0], wantTPPRoleEntry.Province[0]},
 			{"Check policy key type", venafiPolicyEntry.KeyType, ""},
 			{"Check policy key size", venafiPolicyEntry.KeyBits, 0},
-
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
@@ -521,13 +520,12 @@ func Test_backend_getVenafiPolicyParams(t *testing.T) {
 			have interface{}
 			want interface{}
 		}{
-			{"Check policy Org", venafiPolicyEntry.Organization[0],"" },
-			{"Check policy locality", venafiPolicyEntry.Locality[0],"" },
-			{"Check policy Country", venafiPolicyEntry.Country[0],"" },
-			{"Check policy province", venafiPolicyEntry.Province[0],"" },
+			{"Check policy Org", venafiPolicyEntry.Organization[0], ""},
+			{"Check policy locality", venafiPolicyEntry.Locality[0], ""},
+			{"Check policy Country", venafiPolicyEntry.Country[0], ""},
+			{"Check policy province", venafiPolicyEntry.Province[0], ""},
 			{"Check policy key type", venafiPolicyEntry.KeyType, "ec"},
 			{"Check policy key size", venafiPolicyEntry.KeyBits, 521},
-
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {

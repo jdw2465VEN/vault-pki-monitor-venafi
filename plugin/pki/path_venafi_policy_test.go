@@ -827,11 +827,11 @@ func Test_updateRolesPolicyAttributes(t *testing.T) {
 		})
 	}
 
-	for _,roleName := range defaultsRoles {
+	for _, roleName := range defaultsRoles {
 		t.Log("Checking that roles was created by policy")
 		roleReq := &logical.Request{
 			Operation: logical.ReadOperation,
-			Path:      "roles/"+roleName,
+			Path:      "roles/" + roleName,
 			Storage:   storage,
 		}
 

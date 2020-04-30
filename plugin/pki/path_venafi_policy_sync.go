@@ -144,7 +144,7 @@ func (b *backend) syncPolicyEnforcementAndRoleDefaults(conf *logical.BackendConf
 		}
 
 		for _, roleName := range rolesList.defaultsRoles {
-			log.Printf("%s Synchronizing role %s",logPrefixVenafiRoleyDefaults, roleName)
+			log.Printf("%s Synchronizing role %s", logPrefixVenafiRoleyDefaults, roleName)
 			syncErr := b.synchronizeRoleDefaults(ctx, b.storage, roleName, policyName)
 			if syncErr == nil {
 				log.Printf("%s finished synchronizing role %s", logPrefixVenafiRoleyDefaults, roleName)
@@ -288,11 +288,11 @@ func (b *backend) getVenafiPolicyParams(ctx context.Context, storage logical.Sto
 		if policy.AllowedKeyConfigurations[0].KeyType == certificate.KeyTypeECDSA {
 			entry.KeyType = "ec"
 		}
-		
+
 		if len(policy.AllowedKeyConfigurations[0].KeySizes) == 1 {
 			entry.KeyBits = policy.AllowedKeyConfigurations[0].KeySizes[0]
-		} 
-		
+		}
+
 		if len(policy.AllowedKeyConfigurations[0].KeyCurves) == 1 {
 			switch policy.AllowedKeyConfigurations[0].KeyCurves[0] {
 			case certificate.EllipticCurveP521:
