@@ -18,6 +18,7 @@ import (
 
 const (
 	venafiRolePolicyMapStorage  = "venafi-role-policy-map"
+	venafiRolePolicyPath        = "venafi-role-policy/"
 	venafiPolicyPath            = "venafi-policy/"
 	defaultVenafiPolicyName     = "default"
 	policyFieldEnforcementRoles = "enforcement_roles"
@@ -155,6 +156,22 @@ func pathVenafiPolicyContent(b *backend) *framework.Path {
 	return ret
 }
 
+func pathVenafiRolePolicy(b *backend) *framework.Path {
+	ret := &framework.Path{
+		Pattern: venafiRolePolicyPath + framework.GenericNameRegex("name"),
+		Fields: map[string]*framework.FieldSchema{
+			"name": {
+				Type:        framework.TypeString,
+				Description: "Name of the Venafi role to read",
+			},
+		},
+		Callbacks: map[logical.Operation]framework.OperationFunc{
+			logical.ReadOperation:   b.pathReadVenafiRolePolicy,
+		},
+	}
+	return ret
+}
+
 func pathVenafiPolicyList(b *backend) *framework.Path {
 	ret := &framework.Path{
 		Pattern: venafiPolicyPath,
@@ -179,6 +196,33 @@ func pathVenafiPolicyMap(b *backend) *framework.Path {
 		HelpDescription: pathImportQueueDesc,
 	}
 	return ret
+}
+
+func (b *backend) pathReadVenafiRolePolicy(ctx context.Context, req *logical.Request, data *framework.FieldData) (resp *logical.Response, err error) {
+	name := data.Get("name").(string)
+
+	policyMap, err := getPolicyRoleMap(ctx, req.Storage)
+	if err != nil {
+		return nil, err
+	}
+
+	var defaultsPolicy, enforcePolicy, importPolicy string
+	if _, ok := policyMap.Roles[name]; ok {
+		defaultsPolicy = policyMap.Roles[name].DefaultsPolicy
+		enforcePolicy = policyMap.Roles[name].EnforcementPolicy
+		importPolicy = policyMap.Roles[name].ImportPolicy
+	}
+
+	//Send policy to the user output
+	respData := map[string]interface{}{
+		"import_policy": importPolicy,
+		"defaults_policy": defaultsPolicy,
+		"enforcement_policy": enforcePolicy,
+	}
+
+	return &logical.Response{
+		Data: respData,
+	}, nil
 }
 
 func (b *backend) refreshVenafiPolicyEnforcementContent(storage logical.Storage, policyName string) (err error) {

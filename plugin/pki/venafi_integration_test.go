@@ -314,3 +314,11 @@ func TestAllVenafiIntegrations(t *testing.T) {
 	}
 	b.taskStorage.stop = true
 }
+
+//TODO: acceptance tests needed for VEN-58946 Vault Monitor - Refine role sync with policy configuration and behavior:
+/*
+Creating or updating the Venafi policy named "default" should update any existing roles not linked to another Venafi policy so they match the default policy
+Creating or updating any Venafi policy other than "default" should create or update any roles associated with this non-default Venafi policy so they match
+Creating or updating a role that is not linked to any Venafi policy should accept any non-policy values in the request and use default policy values for the rest
+Creating or updating a role that is linked to a Venafi policy should accept any non-policy values in the request and use values of the linked policy for the rest
+ */

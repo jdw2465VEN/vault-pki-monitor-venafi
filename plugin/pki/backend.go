@@ -81,6 +81,7 @@ func Backend(conf *logical.BackendConfig) *backend {
 			pathVenafiPolicyContent(&b),
 			pathVenafiPolicyList(&b),
 			pathVenafiPolicyMap(&b),
+			pathVenafiRolePolicy(&b),
 			pathVenafiPolicySync(&b),
 			pathRevoke(&b),
 			pathTidy(&b),

@@ -135,6 +135,60 @@ func venafiPolicyWriteAndReadTest(t *testing.T, policyData map[string]interface{
 
 }
 
+func Test_pathVenafiRolePolicy(t *testing.T) {
+
+	policy := copyMap(policyCloudData)
+	testRoleName := "test-role"
+	policy[policyFieldDefaultsRoles] = testRoleName
+	policy[policyFieldEnforcementRoles] = testRoleName
+	policy[policyFieldImportRoles] = testRoleName
+
+	// create the backend
+	config := logical.TestBackendConfig()
+	storage := &logical.InmemStorage{}
+	config.StorageView = storage
+
+	b := Backend(config)
+	err := b.Setup(context.Background(), config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	writePolicy(b, storage, policy, t, defaultVenafiPolicyName)
+
+	//read policy map
+	resp, err := b.HandleRequest(context.Background(), &logical.Request{
+		Operation: logical.ReadOperation,
+		Path:      venafiRolePolicyPath + testRoleName,
+		Storage:   storage,
+		Data:      roleData,
+	})
+	if resp != nil && resp.IsError() {
+		t.Fatalf("failed to read policy map, %#v", resp)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+
+
+	tests := []struct {
+		have string
+		want string
+	}{
+		{ resp.Data["defaults_policy"].(string), "default"},
+		{resp.Data["enforcement_policy"].(string), "default"},
+		{ resp.Data["import_policy"].(string), "default"},
+	}
+	for _, tt := range tests {
+		t.Run("check policy for role", func(t *testing.T) {
+			if tt.have != tt.want {
+				t.Fatalf("%s doesn't match %s", tt.have, tt.want)
+			}
+		})
+	}
+
+}
+
 func Test_pathShowVenafiPolicyMap(t *testing.T) {
 
 	policy := copyMap(policyCloudData)
