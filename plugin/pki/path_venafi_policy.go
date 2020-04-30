@@ -117,6 +117,11 @@ Also you can use constants from this module (like 1, 5,8) direct or use OIDs (li
 				Default:     5,
 				Description: `Max amount of simultaneously working instances of vcert import`,
 			},
+			"import_only_non_compliant": {
+				Type:        framework.TypeBool,
+				Default:     false,
+				Description: "Import to Venafi only certificates non-compliant to zone policy",
+			},
 			policyFieldCreateRole: {
 				Type:        framework.TypeBool,
 				Default:     false,
@@ -289,10 +294,11 @@ func (b *backend) pathUpdateVenafiPolicy(ctx context.Context, req *logical.Reque
 			TPPUser:         data.Get("tpp_user").(string),
 			TrustBundleFile: data.Get("trust_bundle_file").(string),
 		},
-		AutoRefreshInterval: int64(data.Get("auto_refresh_interval").(int)),
-		VenafiImportTimeout: data.Get("import_timeout").(int),
-		VenafiImportWorkers: data.Get("import_workers").(int),
-		CreateRole:          data.Get(policyFieldCreateRole).(bool),
+		AutoRefreshInterval:    int64(data.Get("auto_refresh_interval").(int)),
+		VenafiImportTimeout:    data.Get("import_timeout").(int),
+		VenafiImportWorkers:    data.Get("import_workers").(int),
+		CreateRole:             data.Get(policyFieldCreateRole).(bool),
+		ImportOnlyNonCompliant: data.Get("import_only_non_compliant").(bool),
 	}
 	unparsedKeyUsage := data.Get("ext_key_usage").([]string)
 	venafiPolicyConfig.ExtKeyUsage, err = parseExtKeyUsageParameter(unparsedKeyUsage)
@@ -324,7 +330,7 @@ func (b *backend) pathUpdateVenafiPolicy(ctx context.Context, req *logical.Reque
 
 	rolesTypesMap := getRolesTypeMap(data)
 
-    policyMap, err := makePolicyRoleMap(name, req, ctx)
+	policyMap, err := makePolicyRoleMap(name, req, ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -361,7 +367,7 @@ func makePolicyRoleMap(name string, req *logical.Request, ctx context.Context) (
 		if err != nil {
 			return policyMap, err
 		}
-		for _,role := range roles {
+		for _, role := range roles {
 			if _, ok := policyMap.Roles[role]; !ok {
 				log.Printf("%s adding role %s to map", logPrefixVenafiPolicyEnforcement, role)
 				r := policyTypes{}
@@ -397,10 +403,6 @@ func getPolicyRoleMap(ctx context.Context, storage logical.Storage) (policyMap p
 	}
 
 	err = json.Unmarshal(entry.Value, &policyMap)
-	if err != nil {
-		return
-	}
-
 	return
 }
 
@@ -421,12 +423,7 @@ func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.
 				}
 			}
 
-			r := policyTypes{}
-
-			//copy old policy values from policy map before setting new value
-			r.EnforcementPolicy = policyMap.Roles[roleName].EnforcementPolicy
-			r.DefaultsPolicy = policyMap.Roles[roleName].DefaultsPolicy
-			r.ImportPolicy = policyMap.Roles[roleName].ImportPolicy
+			r := policyMap.Roles[roleName]
 
 			switch roleType {
 			case policyFieldEnforcementRoles:
@@ -460,7 +457,7 @@ func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.
 	return
 }
 
-func getRolesTypeMap(data *framework.FieldData) (rolesTypesMap map[string][]string){
+func getRolesTypeMap(data *framework.FieldData) (rolesTypesMap map[string][]string) {
 	rolesTypesMap = map[string][]string{}
 	for _, roleType := range []string{policyFieldEnforcementRoles, policyFieldDefaultsRoles, policyFieldImportRoles} {
 		for _, roleName := range data.Get(roleType).([]string) {
@@ -610,6 +607,7 @@ func (b *backend) pathReadVenafiPolicy(ctx context.Context, req *logical.Request
 		"import_timeout":            config.VenafiImportTimeout,
 		"import_workers":            config.VenafiImportWorkers,
 		"create_role":               config.CreateRole,
+		"import_only_non_compliant": config.ImportOnlyNonCompliant,
 	}
 
 	return &logical.Response{
@@ -917,12 +915,13 @@ func (b *backend) getVenafiPolicyConfig(ctx context.Context, s logical.Storage, 
 
 type venafiPolicyConfigEntry struct {
 	venafiConnectionConfig
-	ExtKeyUsage          []x509.ExtKeyUsage `json:"ext_key_usage"`
-	AutoRefreshInterval  int64              `json:"auto_refresh_interval"`
-	LastPolicyUpdateTime int64              `json:"last_policy_update_time"`
-	VenafiImportTimeout  int                `json:"import_timeout"`
-	VenafiImportWorkers  int                `json:"import_workers"`
-	CreateRole           bool               `json:"create_role"`
+	ExtKeyUsage            []x509.ExtKeyUsage `json:"ext_key_usage"`
+	AutoRefreshInterval    int64              `json:"auto_refresh_interval"`
+	LastPolicyUpdateTime   int64              `json:"last_policy_update_time"`
+	VenafiImportTimeout    int                `json:"import_timeout"`
+	VenafiImportWorkers    int                `json:"import_workers"`
+	CreateRole             bool               `json:"create_role"`
+	ImportOnlyNonCompliant bool               `json:"import_only_non_compliant"`
 }
 
 type venafiPolicyEntry struct {

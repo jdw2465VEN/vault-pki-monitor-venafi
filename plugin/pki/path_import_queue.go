@@ -2,6 +2,8 @@ package pki
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -26,7 +28,8 @@ type Job struct {
 	importPath string
 	ctx        context.Context
 	//req        *logical.Request
-	storage logical.Storage
+	storage                logical.Storage
+	importOnlyNonCompliant bool
 }
 
 // This returns the list of queued for import to TPP certificates
@@ -94,7 +97,7 @@ func (b *backend) pathUpdateImportQueue(ctx context.Context, req *logical.Reques
 	return logical.ListResponse(entries), nil
 }
 
-func (b *backend) fillImportQueueTask(roleName string, policyName string, noOfWorkers int, storage logical.Storage, conf *logical.BackendConfig) {
+func (b *backend) fillImportQueueTask(roleName string, policyName string, noOfWorkers int, importOnlyNonCompliant bool, storage logical.Storage, conf *logical.BackendConfig) {
 	ctx := context.Background()
 	jobs := make(chan Job, 100)
 	replicationState := conf.System.ReplicationState()
@@ -137,13 +140,14 @@ func (b *backend) fillImportQueueTask(roleName string, policyName string, noOfWo
 	for i, entry := range entries {
 		log.Printf("%s Allocating job for entry %s", logPrefixVenafiImport, entry)
 		job := Job{
-			id:         i,
-			entry:      entry,
-			importPath: importPath,
-			roleName:   roleName,
-			policyName: policyName,
-			storage:    storage,
-			ctx:        ctx,
+			id:                     i,
+			entry:                  entry,
+			importPath:             importPath,
+			roleName:               roleName,
+			policyName:             policyName,
+			storage:                storage,
+			ctx:                    ctx,
+			importOnlyNonCompliant: importOnlyNonCompliant,
 		}
 		jobs <- job
 	}
@@ -201,7 +205,7 @@ func (b *backend) controlImportQueue(conf *logical.BackendConfig) {
 		}
 		b.taskStorage.register(fillQueuePrefix+roleName, func() {
 			log.Printf("%s run queue filler %s", logPrefixVenafiImport, roleName)
-			b.fillImportQueueTask(roleName, policyMap.Roles[roleName].ImportPolicy, policyConfig.VenafiImportWorkers, b.storage, conf)
+			b.fillImportQueueTask(roleName, policyMap.Roles[roleName].ImportPolicy, policyConfig.VenafiImportWorkers, policyConfig.ImportOnlyNonCompliant, b.storage, conf)
 		}, 1, time.Duration(policyConfig.VenafiImportTimeout)*time.Second)
 
 	}
@@ -247,6 +251,12 @@ func (b *backend) processImportToTPP(job Job) string {
 	if err != nil {
 		return fmt.Sprintf("%s Could not get certificate from entry %s: %s", msg, importPath+job.entry, err)
 	}
+	if job.importOnlyNonCompliant {
+		valid, err := b.checkCertMatchPolicy(Certificate, job.roleName)
+		if valid {
+			return fmt.Sprintf("Skip import valid certificate %v for role %v", job.entry, job.roleName)
+		}
+	}
 	//TODO: here we should check for existing CN and set it to DNS or throw error
 	cn := Certificate.Subject.CommonName
 
@@ -275,6 +285,15 @@ func (b *backend) processImportToTPP(job Job) string {
 	b.deleteCertFromQueue(job)
 	return pp(importResp)
 
+}
+func (b *backend) checkCertMatchPolicy(cert *x509.Certificate, roleName string) (bool, error) {
+	var req x509.CertificateRequest
+	//todo: copy cert to req
+	err := checkCSR(false, &req, policy)
+	if err != nil {
+		return false, nil
+	}
+	return true, nil
 }
 
 func (b *backend) deleteCertFromQueue(job Job) {
