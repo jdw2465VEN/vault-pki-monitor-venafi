@@ -120,7 +120,7 @@ Also you can use constants from this module (like 1, 5,8) direct or use OIDs (li
 			policyFieldCreateRole: {
 				Type:        framework.TypeBool,
 				Default:     false,
-				Description: `Automatically create empty role for polic if it does not exists`,
+				Description: `Automatically create empty role for policy if it does not exists`,
 			},
 		},
 		Callbacks: map[logical.Operation]framework.OperationFunc{
@@ -763,15 +763,13 @@ func checkAgainstVenafiPolicy(
 	if csr != nil {
 		log.Printf("%s Checking CSR against policy %s", logPrefixVenafiPolicyEnforcement, venafiEnforcementPolicy)
 		if isCA {
-			if len(csr.EmailAddresses) != 0 || len(csr.DNSNames) != 0 || len(csr.IPAddresses) != 0 || len(csr.URIs) != 0 {
-				//workaround for setting SAN if CA have normal domain in CN
-				if csr.DNSNames[0] != csr.Subject.CommonName {
-					return fmt.Errorf("CA doesn`t allowed to have any SANs: %v, %v, %v, %v", csr.EmailAddresses, csr.DNSNames, csr.IPAddresses, csr.URIs)
-				}
+			if len(csr.EmailAddresses) != 0 || len(csr.IPAddresses) != 0 || len(csr.URIs) != 0 || (len(csr.DNSNames) != 0 &&
+				csr.DNSNames[0] != csr.Subject.CommonName) { //workaround for setting SAN if CA have normal domain in CN
+				return fmt.Errorf("CA doesn`t allowed to have any SANs: %v, %v, %v, %v", csr.EmailAddresses, csr.DNSNames, csr.IPAddresses, csr.URIs)
 			}
 		} else {
 			if !checkStringByRegexp(csr.Subject.CommonName, policy.SubjectCNRegexes) {
-				return fmt.Errorf("common name %s doesn't match regexps: %v", cn, policy.SubjectCNRegexes)
+				return fmt.Errorf("common name %s doesn't match regexps: %v", csr.Subject.CommonName, policy.SubjectCNRegexes)
 			}
 			if !checkStringArrByRegexp(csr.EmailAddresses, policy.EmailSanRegExs, true) {
 				return fmt.Errorf("emails %v doesn't match regexps: %v", email, policy.EmailSanRegExs)
@@ -834,11 +832,9 @@ func checkAgainstVenafiPolicy(
 		log.Printf("%s Checking creation bundle against policy %s", logPrefixVenafiPolicyEnforcement, venafiEnforcementPolicy)
 
 		if isCA {
-			if len(email) != 0 || len(sans) != 0 || len(ipAddresses) != 0 {
-				//workaround for setting SAN if CA have normal domain in CN
-				if sans[0] != cn {
-					return fmt.Errorf("CA doesn`t allowed to have any SANs: %v, %v, %v", email, sans, ipAddresses)
-				}
+			if len(email) != 0 || len(ipAddresses) != 0 || (len(sans) != 0 &&
+				sans[0] != cn) { //workaround for setting SAN if CA have normal domain in CN
+				return fmt.Errorf("CA doesn`t allowed to have any SANs: %v, %v, %v", email, sans, ipAddresses)
 			}
 		} else {
 			if !checkStringByRegexp(cn, policy.SubjectCNRegexes) {
