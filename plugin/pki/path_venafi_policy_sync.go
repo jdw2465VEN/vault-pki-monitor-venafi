@@ -3,6 +3,7 @@ package pki
 import (
 	"context"
 	"fmt"
+	"github.com/Venafi/vcert/pkg/certificate"
 	"github.com/hashicorp/vault/sdk/framework"
 	hconsts "github.com/hashicorp/vault/sdk/helper/consts"
 	"github.com/hashicorp/vault/sdk/logical"
@@ -143,7 +144,7 @@ func (b *backend) syncPolicyEnforcementAndRoleDefaults(conf *logical.BackendConf
 		}
 
 		for _, roleName := range rolesList.defaultsRoles {
-			log.Printf("Synchronizing role %s", roleName)
+			log.Printf("%s Synchronizing role %s",logPrefixVenafiRoleyDefaults, roleName)
 			syncErr := b.synchronizeRoleDefaults(ctx, b.storage, roleName, policyName)
 			if syncErr == nil {
 				log.Printf("%s finished synchronizing role %s", logPrefixVenafiRoleyDefaults, roleName)
@@ -261,12 +262,51 @@ func (b *backend) getVenafiPolicyParams(ctx context.Context, storage logical.Sto
 	if err != nil {
 		return entry, fmt.Errorf("could not read zone configuration: %s", err)
 	}
+
+	policy, err := cl.ReadPolicyConfiguration()
+	if err != nil {
+		return
+	}
+	if policy == nil {
+		err = fmt.Errorf("expected policy but got nil from Venafi endpoint %v", policy)
+		return
+	}
 	entry = roleEntry{
 		OU:           zone.OrganizationalUnit,
 		Organization: []string{zone.Organization},
 		Country:      []string{zone.Country},
 		Locality:     []string{zone.Locality},
 		Province:     []string{zone.Province},
+	}
+
+	if len(policy.AllowedKeyConfigurations) > 1 {
+		log.Println("Skipping policy configuration since it have multiple values")
+	} else {
+		if policy.AllowedKeyConfigurations[0].KeyType == certificate.KeyTypeRSA {
+			entry.KeyType = "rsa"
+		}
+		if policy.AllowedKeyConfigurations[0].KeyType == certificate.KeyTypeECDSA {
+			entry.KeyType = "ec"
+		}
+		
+		if len(policy.AllowedKeyConfigurations[0].KeySizes) == 1 {
+			entry.KeyBits = policy.AllowedKeyConfigurations[0].KeySizes[0]
+		} 
+		
+		if len(policy.AllowedKeyConfigurations[0].KeyCurves) == 1 {
+			switch policy.AllowedKeyConfigurations[0].KeyCurves[0] {
+			case certificate.EllipticCurveP521:
+				entry.KeyBits = 521
+			case certificate.EllipticCurveP256:
+				entry.KeyBits = 256
+			case certificate.EllipticCurveP384:
+				entry.KeyBits = 384
+			}
+		} else {
+			if policy.AllowedKeyConfigurations[0].KeyType == certificate.KeyTypeECDSA {
+				entry.KeyBits = 256
+			}
+		}
 	}
 	return
 }

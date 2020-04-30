@@ -25,6 +25,14 @@ var policyTPPData2 = map[string]interface{}{
 	"trust_bundle_file": os.Getenv("TRUST_BUNDLE"),
 }
 
+var policyTPPDataECDSA = map[string]interface{}{
+	"tpp_url":           os.Getenv("TPP_URL"),
+	"tpp_user":          os.Getenv("TPP_USER"),
+	"tpp_password":      os.Getenv("TPP_PASSWORD"),
+	"zone":              os.Getenv("TPP_ZONE_ECDSA"),
+	"trust_bundle_file": os.Getenv("TRUST_BUNDLE"),
+}
+
 var policyCloudData = map[string]interface{}{
 	"apikey":    os.Getenv("CLOUD_APIKEY"),
 	"cloud_url": os.Getenv("CLOUD_URL"),
@@ -473,29 +481,62 @@ func Test_backend_getVenafiPolicyParams(t *testing.T) {
 	ctx := context.Background()
 
 	writePolicy(b, storage, policyTPPData, t, defaultVenafiPolicyName)
-	venafiPolicyEntry, err := b.getVenafiPolicyParams(ctx, storage, defaultVenafiPolicyName, policyTPPData["zone"].(string))
-	if err != nil {
-		t.Fatal(err)
-	}
+	t.Run("Check zone with multiple key configuration", func(t *testing.T) {
+		venafiPolicyEntry, err := b.getVenafiPolicyParams(ctx, storage, defaultVenafiPolicyName, policyTPPData["zone"].(string))
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	tests := []struct {
-		name string
-		have string
-		want string
-	}{
-		{"Check policy Org", wantTPPRoleEntry.Organization[0], venafiPolicyEntry.Organization[0]},
-		{"Check policy OU", wantTPPRoleEntry.OU[0], venafiPolicyEntry.OU[0]},
-		{"Check policy locality", wantTPPRoleEntry.Locality[0], venafiPolicyEntry.Locality[0]},
-		{"Check policy Country", wantTPPRoleEntry.Country[0], venafiPolicyEntry.Country[0]},
-		{"Check policy province", wantTPPRoleEntry.Province[0], venafiPolicyEntry.Province[0]},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.have != tt.want {
-				t.Fatalf("%s doesn't match %s", tt.have, tt.want)
-			}
-		})
-	}
+		tests := []struct {
+			name string
+			have interface{}
+			want interface{}
+		}{
+			{"Check policy Org", venafiPolicyEntry.Organization[0],wantTPPRoleEntry.Organization[0] },
+			{"Check policy OU", venafiPolicyEntry.OU[0],wantTPPRoleEntry.OU[0] },
+			{"Check policy locality", venafiPolicyEntry.Locality[0],wantTPPRoleEntry.Locality[0] },
+			{"Check policy Country", venafiPolicyEntry.Country[0],wantTPPRoleEntry.Country[0] },
+			{"Check policy province", venafiPolicyEntry.Province[0],wantTPPRoleEntry.Province[0] },
+			{"Check policy key type", venafiPolicyEntry.KeyType, ""},
+			{"Check policy key size", venafiPolicyEntry.KeyBits, 0},
+
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				if tt.have != tt.want {
+					t.Fatalf("%s doesn't match %s", tt.have, tt.want)
+				}
+			})
+		}
+	})
+
+	t.Run("Check zone with one key configuration", func(t *testing.T) {
+		venafiPolicyEntry, err := b.getVenafiPolicyParams(ctx, storage, defaultVenafiPolicyName, policyTPPDataECDSA["zone"].(string))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		tests := []struct {
+			name string
+			have interface{}
+			want interface{}
+		}{
+			{"Check policy Org", venafiPolicyEntry.Organization[0],"" },
+			{"Check policy locality", venafiPolicyEntry.Locality[0],"" },
+			{"Check policy Country", venafiPolicyEntry.Country[0],"" },
+			{"Check policy province", venafiPolicyEntry.Province[0],"" },
+			{"Check policy key type", venafiPolicyEntry.KeyType, "ec"},
+			{"Check policy key size", venafiPolicyEntry.KeyBits, 521},
+
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				if tt.have != tt.want {
+					t.Fatalf("%s doesn't match %s", tt.have, tt.want)
+				}
+			})
+		}
+	})
 	b.taskStorage.stop = true
 }
 

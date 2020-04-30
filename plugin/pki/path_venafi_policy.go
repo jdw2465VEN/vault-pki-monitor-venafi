@@ -119,7 +119,7 @@ Also you can use constants from this module (like 1, 5,8) direct or use OIDs (li
 			},
 			policyFieldCreateRole: {
 				Type:        framework.TypeBool,
-				Default:     false,
+				Default:     true,
 				Description: `Automatically create empty role for polic if it does not exists`,
 			},
 		},
@@ -420,7 +420,22 @@ func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.
 				if !createRole {
 					return fmt.Errorf("role %s does not exists. can not add it to the attributes of policy %s", roleName, policyName)
 				} else {
-					//TODO: fill role entry
+					log.Printf("%s Creating role %s", logPrefixVenafiRoleyDefaults, roleName)
+					var roleData = map[string]interface{}{}
+
+					resp, err := b.HandleRequest(context.Background(), &logical.Request{
+						Operation: logical.UpdateOperation,
+						Path:      "roles/" + roleName,
+						Storage:   req.Storage,
+						Data:      roleData,
+					})
+					if resp != nil && resp.IsError() {
+						return fmt.Errorf("failed to create a role, %#v", resp)
+					}
+					if err != nil {
+						return err
+					}
+
 					if roleType == policyFieldDefaultsRoles {
 						log.Printf("Adding role %s to update defaults list", roleName)
 						updateDefaultsRolesList = append(updateDefaultsRolesList, roleName)
@@ -439,13 +454,14 @@ func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.
 			fillPolicyMapWithRoles(policyMap, roleName, policyName, roleType)
 
 			//Save role entry to storage and sync its defaults
-			jsonEntry, err := logical.StorageEntryJSON("role/"+roleName, role)
-			if err != nil {
-				return err
-			}
-			if err := req.Storage.Put(ctx, jsonEntry); err != nil {
-				return err
-			}
+			//TODO: looks like this is not needed if role is not nil
+			//jsonEntry, err := logical.StorageEntryJSON("role/"+roleName, role)
+			//if err != nil {
+			//	return err
+			//}
+			//if err := req.Storage.Put(ctx, jsonEntry); err != nil {
+			//	return err
+			//}
 		}
 	}
 
