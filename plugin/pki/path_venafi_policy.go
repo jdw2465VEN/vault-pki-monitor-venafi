@@ -772,7 +772,7 @@ func checkAgainstVenafiPolicy(
 				return fmt.Errorf("common name %s doesn't match regexps: %v", csr.Subject.CommonName, policy.SubjectCNRegexes)
 			}
 			if !checkStringArrByRegexp(csr.EmailAddresses, policy.EmailSanRegExs, true) {
-				return fmt.Errorf("emails %v doesn't match regexps: %v", email, policy.EmailSanRegExs)
+				return fmt.Errorf("emails %v doesn't match regexps: %v", csr.EmailAddresses, policy.EmailSanRegExs)
 			}
 			if !checkStringArrByRegexp(csr.DNSNames, policy.DnsSanRegExs, true) {
 				return fmt.Errorf("DNS sans %v doesn't match regexps: %v", csr.DNSNames, policy.DnsSanRegExs)
@@ -782,7 +782,7 @@ func checkAgainstVenafiPolicy(
 				ips[i] = ip.String()
 			}
 			if !checkStringArrByRegexp(ips, policy.IpSanRegExs, true) {
-				return fmt.Errorf("IPs %v doesn't match regexps: %v", ipAddresses, policy.IpSanRegExs)
+				return fmt.Errorf("IPs %v doesn't match regexps: %v", ips, policy.IpSanRegExs)
 			}
 			uris := make([]string, len(csr.URIs))
 			for i, uri := range csr.URIs {
