@@ -172,6 +172,7 @@ func (b *backend) syncPolicyEnforcementAndRoleDefaults(conf *logical.BackendConf
 }
 
 func (b *backend) synchronizeRoleDefaults(ctx context.Context, storage logical.Storage, roleName string, policyName string) (err error) {
+	log.Printf("%s Synchronizing role defaults", logPrefixVenafiRoleyDefaults)
 	//TODO: test it
 	//	Read previous role parameters
 	pkiRoleEntry, err := b.getPKIRoleEntry(ctx, storage, roleName)

@@ -554,6 +554,19 @@ func (b *backend) pathRoleCreate(ctx context.Context, req *logical.Request, data
 	}
 
 	//Refresh defaults if role in defaults policy
+	policyMap, err := getPolicyRoleMap(ctx, req.Storage)
+	if err != nil {
+		return nil, err
+	}
+
+	//Get Venafi policy in entry format
+	if policyMap.Roles[name].DefaultsPolicy != "" {
+		err = b.synchronizeRoleDefaults(ctx, b.storage, name, policyMap.Roles[name].DefaultsPolicy)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 
 
 	// Store it
