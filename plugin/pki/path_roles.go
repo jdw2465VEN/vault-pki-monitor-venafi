@@ -554,7 +554,18 @@ func (b *backend) pathRoleCreate(ctx context.Context, req *logical.Request, data
 		}
 	}
 
+
+	// Store it
+	jsonEntry, err := logical.StorageEntryJSON("role/"+name, entry)
+	if err != nil {
+		return nil, err
+	}
+	if err := req.Storage.Put(ctx, jsonEntry); err != nil {
+		return nil, err
+	}
+
 	//Refresh defaults if role in defaults policy
+	//TODO: need to change refresh defaults function to function which will return only modified entry
 	policyMap, err := getPolicyRoleMap(ctx, req.Storage)
 	if err != nil {
 		if err.Error() == errPolicyMapDoesNotExists {
@@ -571,17 +582,6 @@ func (b *backend) pathRoleCreate(ctx context.Context, req *logical.Request, data
 				return nil, err
 			}
 		}
-	}
-
-
-
-	// Store it
-	jsonEntry, err := logical.StorageEntryJSON("role/"+name, entry)
-	if err != nil {
-		return nil, err
-	}
-	if err := req.Storage.Put(ctx, jsonEntry); err != nil {
-		return nil, err
 	}
 
 	return nil, nil

@@ -202,6 +202,7 @@ func (b *backend) synchronizeRoleDefaults(ctx context.Context, storage logical.S
 		return fmt.Errorf("entry is nil")
 	}
 
+	//TODO: Create separated function from making role entry
 	var venafiConfig venafiConnectionConfig
 	if err := entry.DecodeJSON(&venafiConfig); err != nil {
 		return fmt.Errorf("error reading Venafi policy configuration: %s", err)
@@ -212,6 +213,7 @@ func (b *backend) synchronizeRoleDefaults(ctx context.Context, storage logical.S
 	if err != nil {
 		return err
 	}
+
 
 	//  Replace PKI entry with Venafi policy values
 	log.Printf("%s Updating with entry:\n %#v", venafiPolicyEntry)
