@@ -763,11 +763,12 @@ func venafiPolicyTests(t *testing.T, policyData map[string]interface{}, domain s
 
 }
 
-func TestVenafiPolicyAutoRefresh(t *testing.T) {
+func Test_refreshVenafiPolicyEnforcementContent(t *testing.T) {
 	b, storage := createBackendWithStorage(t)
+	ctx := context.Background()
 
 	t.Log("writing TPP configuration")
-	writePolicy(b, storage, venafiTestTPPConfigAllAllow, t, "tpp-policy")
+
 	t.Log("writing Cloud configuration")
 	writePolicy(b, storage, venafiTestCloudConfigAllAllow, t, "cloud-policy")
 	t.Log("writing TPP no refresh policy")
@@ -775,27 +776,76 @@ func TestVenafiPolicyAutoRefresh(t *testing.T) {
 	t.Log("writing bad data policy")
 	writePolicy(b, storage, venafiTestConfigBadData, t, "policy-bad-data")
 
-	err := b.refreshVenafiPolicyEnforcementContent(storage, "tpp-policy")
-	if err != nil {
-		t.Fatal(err)
+	type args struct {
+		policyName string
+		policyData map[string]interface{}
+	}
+	tests := []struct {
+		name string
+		args args
+		want error
+	}{
+		{"refresh TPP enforcement", args{"tpp-policy", venafiTestTPPConfigAllAllow}, nil},
+		{"refresh Cloud enforcement", args{"cloud-policy", venafiTestCloudConfigAllAllow}, nil},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			writePolicy(b, storage, tt.args.policyData, t, tt.args.policyName)
+			if got := b.refreshVenafiPolicyEnforcementContent(ctx, storage, tt.args.policyName); got != tt.want {
+				t.Errorf("error: %v, want %v", got, tt.want)
+			}
+		})
 	}
 
-	err = b.refreshVenafiPolicyEnforcementContent(storage, "tpp-policy")
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = b.refreshVenafiPolicyEnforcementContent(storage, "cloud-policy")
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = b.refreshVenafiPolicyEnforcementContent(storage, "tpp-policy-no-refresh")
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = b.refreshVenafiPolicyEnforcementContent(storage, "policy-bad-data")
-	if err != nil {
-		t.Fatal(err)
+}
 
+func Test_syncPolicyEnforcementAndRoleDefaults(t *testing.T) {
+	// create the backend
+	ctx := context.Background()
+	config := logical.TestBackendConfig()
+	storage := &logical.InmemStorage{}
+	config.StorageView = storage
+
+	b := Backend(config)
+
+	type args struct {
+		policyName string
+		policyData map[string]interface{}
+		roleName string
+		wantRoleEntry roleEntry
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		//{"sync TPP", args{"tpp-policy", venafiTestTPPConfigAllAllow, "tpp-role", wantTPPRoleEntry}},
+		{"sync Cloud", args{"cloud-policy", venafiTestCloudConfigRestricted, "cloud-role", wantCloudRoleEntry}},
+		{"sync Cloud no refresh", args{"cloud-policy", venafiTestCloudConfigNoRefresh, "cloud-role-no-refresh", wantEmptyRoleEntry}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			policyData := copyMap(tt.args.policyData)
+			policyData[policyFieldDefaultsRoles] = tt.args.roleName
+			policyData[policyFieldEnforcementRoles] = tt.args.roleName
+			writePolicy(b, storage, policyData, t, tt.args.roleName)
+			//Cleanup role before doing refresh
+			b.setupRole(t, tt.args.roleName, storage, emptyRoleData)
+			err := b.syncPolicyEnforcementAndRoleDefaults(config)
+			if err != nil {
+				t.Error(err)
+			}
+			t.Log("Checking data for the first role")
+			roleEntryData, err := b.getPKIRoleEntry(ctx, storage, tt.args.roleName)
+
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if roleEntryData == nil {
+				t.Fatal("role entry should not be nil")
+			}
+			checkRoleEntry(t, *roleEntryData, tt.args.wantRoleEntry)
+		})
 	}
 
 }

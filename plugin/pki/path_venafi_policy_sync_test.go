@@ -59,6 +59,10 @@ var wantCloudRoleEntry = roleEntry{
 	KeyUsage:       []string{"CertSign"},
 }
 
+var wantEmptyRoleEntry = roleEntry{
+	Name: "empty-role",
+}
+
 var wantTPPRoleEntry2 = roleEntry{
 	Organization:   []string{"Venafi2"},
 	OU:             []string{"Integrations2"},
@@ -91,6 +95,13 @@ var roleData = map[string]interface{}{
 	"key_usage":          "CertSign",
 	"allow_bare_domains": true,
 	"generate_lease":     true,
+}
+
+var emptyRoleData = map[string]interface{}{
+	"allow_subdomains":   "true",
+	"max_ttl":            "4h",
+	"generate_lease":     true,
+	"key_usage":          "CertSign",
 }
 
 func TestSyncRoleWithTPPPolicy(t *testing.T) {
@@ -552,6 +563,7 @@ func Test_canDoRefresh(t *testing.T) {
 		{"just updated", args{LastPolicyUpdateTime: time.Now().Unix(), AutoRefreshInterval: 10}, false},
 		{"updated 9 sec ago", args{LastPolicyUpdateTime: time.Now().Unix() - int64(9), AutoRefreshInterval: 10}, false},
 		{"updated 11 sec ago", args{LastPolicyUpdateTime: time.Now().Unix() - int64(11), AutoRefreshInterval: 10}, true},
+		{"updated 11 sec ago but auto refresh if of", args{LastPolicyUpdateTime: time.Now().Unix() - int64(11), AutoRefreshInterval: 0}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

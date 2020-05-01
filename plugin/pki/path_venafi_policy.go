@@ -225,25 +225,7 @@ func (b *backend) pathReadVenafiRolePolicy(ctx context.Context, req *logical.Req
 	}, nil
 }
 
-func (b *backend) refreshVenafiPolicyEnforcementContent(storage logical.Storage, policyName string) (err error) {
-
-	ctx := context.Background()
-
-	venafiPolicyConfig, err := b.getVenafiPolicyConfig(ctx, storage, policyName)
-	if err != nil {
-		return fmt.Errorf("Error getting policy config %s: %s", policyName, err)
-
-	}
-	if venafiPolicyConfig == nil {
-		return fmt.Errorf("Policy config for %s is empty", policyName)
-	}
-
-	if venafiPolicyConfig.AutoRefreshInterval > 0 {
-		log.Printf("%s Auto refresh enabled for policy %s. Getting policy from Venafi", logPrefixVenafiPolicyEnforcement, policyName)
-	} else {
-		return nil
-	}
-
+func (b *backend) refreshVenafiPolicyEnforcementContent(ctx context.Context, storage logical.Storage, policyName string) (err error) {
 	policy, err := b.getPolicyFromVenafi(ctx, storage, policyName)
 	if err != nil {
 		return fmt.Errorf("Error getting policy %s from Venafi: %s", policyName, err)
@@ -254,17 +236,6 @@ func (b *backend) refreshVenafiPolicyEnforcementContent(storage logical.Storage,
 	_, err = savePolicyEntry(policy, policyName, ctx, storage)
 	if err != nil {
 		return fmt.Errorf("%s Error saving policy: %s", logPrefixVenafiPolicyEnforcement, err)
-
-	}
-
-	jsonEntry, err := logical.StorageEntryJSON(venafiPolicyPath+policyName, venafiPolicyConfig)
-	if err != nil {
-		return fmt.Errorf("%s Error converting policy config into JSON: %s", logPrefixVenafiPolicyEnforcement, err)
-
-	}
-	if err := storage.Put(ctx, jsonEntry); err != nil {
-		return fmt.Errorf("Error saving policy last update time: %s", err)
-
 	}
 
 	return nil
@@ -436,7 +407,7 @@ func getPolicyRoleMap(ctx context.Context, storage logical.Storage) (policyMap p
 
 	entry, err := storage.Get(ctx, venafiRolePolicyMapStorage)
 	if err != nil {
-		return
+		return policyMap, err
 	}
 
 	if entry == nil {
@@ -445,10 +416,10 @@ func getPolicyRoleMap(ctx context.Context, storage logical.Storage) (policyMap p
 
 	err = json.Unmarshal(entry.Value, &policyMap)
 	if err != nil {
-		return
+		return policyMap, err
 	}
 
-	return
+	return policyMap, err
 }
 
 func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.Request, rolesTypesMap map[string][]string, policyName string, createRole bool, policyMap policyRoleMap) (err error) {
@@ -497,15 +468,6 @@ func (b *backend) updateRolesPolicyAttributes(ctx context.Context, req *logical.
 
 			fillPolicyMapWithRoles(policyMap, roleName, policyName, roleType)
 
-			//Save role entry to storage and sync its defaults
-			//TODO: looks like this is not needed if role is not nil
-			//jsonEntry, err := logical.StorageEntryJSON("role/"+roleName, role)
-			//if err != nil {
-			//	return err
-			//}
-			//if err := req.Storage.Put(ctx, jsonEntry); err != nil {
-			//	return err
-			//}
 		}
 	}
 
@@ -634,6 +596,7 @@ func formPolicyRespData(policy venafiPolicyEntry) (respData map[string]interface
 }
 
 func (b *backend) getPolicyFromVenafi(ctx context.Context, storage logical.Storage, policyConfig string) (policy *endpoint.Policy, err error) {
+	//TODO: test it
 	log.Printf("%s Creating Venafi client", logPrefixVenafiPolicyEnforcement)
 	cl, err := b.ClientVenafi(ctx, storage, policyConfig)
 	if err != nil {

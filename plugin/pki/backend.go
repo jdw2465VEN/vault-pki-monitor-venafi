@@ -101,9 +101,9 @@ func Backend(conf *logical.BackendConfig) *backend {
 	if b.storage == nil {
 		log.Println("Can't start queue when storage is nil")
 	} else {
-		b.taskStorage.init()
-		b.importToTPP(conf)
-		b.syncRoleWithVenafiPolicyRegister(conf)
+		//b.taskStorage.init()
+		//b.importToTPP(conf)
+		//b.syncRoleWithVenafiPolicyRegister(conf)
 	}
 
 	return &b

@@ -158,6 +158,13 @@ var venafiTestCloudConfigAllAllow = map[string]interface{}{
 	"auto_refresh_interval": 1,
 }
 
+var venafiTestCloudConfigNoRefresh = map[string]interface{}{
+	"cloud_url":             os.Getenv("CLOUD_URL"),
+	"apikey":                os.Getenv("CLOUD_APIKEY"),
+	"zone":                  os.Getenv("CLOUD_ZONE"),
+	"auto_refresh_interval": 0,
+}
+
 var venafiTPPCreateSimplePolicyStep = logicaltest.TestStep{
 	Operation: logical.UpdateOperation,
 	Path:      venafiPolicyPath + defaultVenafiPolicyName,
@@ -212,6 +219,11 @@ func checkRoleEntry(t *testing.T, haveRoleEntryData roleEntry, wantRoleEntryData
 	var want string
 	var have string
 
+	if wantRoleEntryData.Name == "empty-role" {
+		//TODO: check that role is empty
+		t.Logf("This should be empty role:\n %#v", haveRoleEntryData)
+		return
+	}
 	want = wantRoleEntryData.OU[0]
 	have = haveRoleEntryData.OU[0]
 	if have != want {

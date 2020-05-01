@@ -126,7 +126,7 @@ func (b *backend) syncPolicyEnforcementAndRoleDefaults(conf *logical.BackendConf
 		}
 
 		//Refresh Venafi policy regexes
-		err = b.refreshVenafiPolicyEnforcementContent(b.storage, policyName)
+		err = b.refreshVenafiPolicyEnforcementContent(ctx, b.storage, policyName)
 		if err != nil {
 			log.Printf("%s Error  refreshing venafi policy content: %s", logPrefixVenafiPolicyEnforcement, err)
 			continue
@@ -308,7 +308,7 @@ func (b *backend) getVenafiPolicyParams(ctx context.Context, storage logical.Sto
 			}
 		}
 	}
-	return
+	return entry, err
 }
 
 func (b *backend) getPKIRoleEntry(ctx context.Context, storage logical.Storage, roleName string) (entry *roleEntry, err error) {
@@ -321,6 +321,9 @@ func (b *backend) getPKIRoleEntry(ctx context.Context, storage logical.Storage, 
 }
 
 func canDoRefresh(LastPolicyUpdateTime, AutoRefreshInterval int64) bool {
+	if AutoRefreshInterval == 0 {
+		return false
+	}
 	log.Printf("%s check last policy updated time", logPrefixVenafiPolicyEnforcement)
 	timePassed := time.Now().Unix() - LastPolicyUpdateTime
 
