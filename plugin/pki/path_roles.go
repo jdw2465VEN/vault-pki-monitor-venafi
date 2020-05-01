@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -556,14 +557,19 @@ func (b *backend) pathRoleCreate(ctx context.Context, req *logical.Request, data
 	//Refresh defaults if role in defaults policy
 	policyMap, err := getPolicyRoleMap(ctx, req.Storage)
 	if err != nil {
-		return nil, err
-	}
-
-	//Get Venafi policy in entry format
-	if policyMap.Roles[name].DefaultsPolicy != "" {
-		err = b.synchronizeRoleDefaults(ctx, b.storage, name, policyMap.Roles[name].DefaultsPolicy)
-		if err != nil {
+		if err.Error() == errPolicyMapDoesNotExists {
+			log.Println(errPolicyMapDoesNotExists + " looks like it is not created yet. Skipping defaults update")
+			err = nil
+		} else {
 			return nil, err
+		}
+	} else {
+		//Get Venafi policy in entry format
+		if policyMap.Roles[name].DefaultsPolicy != "" {
+			err = b.synchronizeRoleDefaults(ctx, b.storage, name, policyMap.Roles[name].DefaultsPolicy)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 

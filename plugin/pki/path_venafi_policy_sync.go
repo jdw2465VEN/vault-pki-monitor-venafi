@@ -172,7 +172,7 @@ func (b *backend) syncPolicyEnforcementAndRoleDefaults(conf *logical.BackendConf
 }
 
 func (b *backend) synchronizeRoleDefaults(ctx context.Context, storage logical.Storage, roleName string, policyName string) (err error) {
-	log.Printf("%s Synchronizing role defaults", logPrefixVenafiRoleyDefaults)
+	log.Printf("%s Synchronizing defaults for role %s", logPrefixVenafiRoleyDefaults, roleName)
 	//TODO: test it
 	//	Read previous role parameters
 	pkiRoleEntry, err := b.getPKIRoleEntry(ctx, storage, roleName)
@@ -214,6 +214,7 @@ func (b *backend) synchronizeRoleDefaults(ctx context.Context, storage logical.S
 	}
 
 	//  Replace PKI entry with Venafi policy values
+	log.Printf("%s Updating with entry:\n %#v", venafiPolicyEntry)
 	replacePKIValue(&pkiRoleEntry.OU, venafiPolicyEntry.OU)
 	replacePKIValue(&pkiRoleEntry.Organization, venafiPolicyEntry.Organization)
 	replacePKIValue(&pkiRoleEntry.Country, venafiPolicyEntry.Country)
