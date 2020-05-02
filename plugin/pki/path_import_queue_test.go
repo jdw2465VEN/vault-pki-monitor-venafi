@@ -663,7 +663,7 @@ func Test_fillImportQueueTask(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	b.fillImportQueueTask(testRoleName, defaultVenafiPolicyName, 5, storage, config)
+	b.fillImportQueueTask(testRoleName, defaultVenafiPolicyName, 5, false, config)
 
 	//retrieve imported certificate
 	//res.Certificates[0].CertificateRequestId != "\\VED\\Policy\\devops\\vcert\\renx3.venafi.example.com"

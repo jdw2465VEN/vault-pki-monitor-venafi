@@ -2,8 +2,6 @@ package pki
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -97,7 +95,7 @@ func (b *backend) pathUpdateImportQueue(ctx context.Context, req *logical.Reques
 	return logical.ListResponse(entries), nil
 }
 
-func (b *backend) fillImportQueueTask(roleName string, policyName string, noOfWorkers int, importOnlyNonCompliant bool, storage logical.Storage, conf *logical.BackendConfig) {
+func (b *backend) fillImportQueueTask(roleName string, policyName string, noOfWorkers int, importOnlyNonCompliant bool, conf *logical.BackendConfig) {
 	ctx := context.Background()
 	jobs := make(chan Job, 100)
 	replicationState := conf.System.ReplicationState()
@@ -113,7 +111,7 @@ func (b *backend) fillImportQueueTask(roleName string, policyName string, noOfWo
 	//var err error
 	importPath := "import-queue/" + roleName + "/"
 
-	entries, err := storage.List(ctx, importPath)
+	entries, err := b.storage.List(ctx, importPath)
 	if err != nil {
 		log.Printf("%s Could not get queue list from path %s: %s", logPrefixVenafiImport, err, importPath)
 		return
@@ -145,7 +143,7 @@ func (b *backend) fillImportQueueTask(roleName string, policyName string, noOfWo
 			importPath:             importPath,
 			roleName:               roleName,
 			policyName:             policyName,
-			storage:                storage,
+			storage:                b.storage,
 			ctx:                    ctx,
 			importOnlyNonCompliant: importOnlyNonCompliant,
 		}
@@ -205,7 +203,7 @@ func (b *backend) controlImportQueue(conf *logical.BackendConfig) {
 		}
 		b.taskStorage.register(fillQueuePrefix+roleName, func() {
 			log.Printf("%s run queue filler %s", logPrefixVenafiImport, roleName)
-			b.fillImportQueueTask(roleName, policyMap.Roles[roleName].ImportPolicy, policyConfig.VenafiImportWorkers, policyConfig.ImportOnlyNonCompliant, b.storage, conf)
+			b.fillImportQueueTask(roleName, policyMap.Roles[roleName].ImportPolicy, policyConfig.VenafiImportWorkers, policyConfig.ImportOnlyNonCompliant, conf)
 		}, 1, time.Duration(policyConfig.VenafiImportTimeout)*time.Second)
 
 	}
@@ -253,6 +251,9 @@ func (b *backend) processImportToTPP(job Job) string {
 	}
 	if job.importOnlyNonCompliant {
 		valid, err := b.checkCertMatchPolicy(Certificate, job.roleName)
+		if err != nil {
+			return fmt.Sprintf("Fail to check cert to matching policies: %v", err)
+		}
 		if valid {
 			return fmt.Sprintf("Skip import valid certificate %v for role %v", job.entry, job.roleName)
 		}
@@ -288,8 +289,29 @@ func (b *backend) processImportToTPP(job Job) string {
 }
 func (b *backend) checkCertMatchPolicy(cert *x509.Certificate, roleName string) (bool, error) {
 	var req x509.CertificateRequest
-	//todo: copy cert to req
-	err := checkCSR(false, &req, policy)
+	req.Subject = cert.Subject
+	req.Extensions = cert.Extensions
+	req.PublicKey = cert.PublicKey
+	req.EmailAddresses = cert.EmailAddresses
+	req.DNSNames = cert.DNSNames
+	req.IPAddresses = cert.IPAddresses
+	req.URIs = cert.URIs
+
+	entry, err := b.storage.Get(context.Background(), venafiPolicyPath+roleName+"/policy")
+	if err != nil {
+		return false, err
+	}
+	if entry == nil {
+		return false, fmt.Errorf("policy data is nil. You need configure Venafi policy to proceed")
+	}
+
+	var policy venafiPolicyEntry
+
+	if err := entry.DecodeJSON(&policy); err != nil {
+		log.Printf("%s error reading Venafi policy configuration: %s", logPrefixVenafiPolicyEnforcement, err)
+		return false, err
+	}
+	err = checkCSR(false, &req, policy)
 	if err != nil {
 		return false, nil
 	}
