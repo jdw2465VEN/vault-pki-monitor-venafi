@@ -692,3 +692,7 @@ func Test_fillImportQueueTask(t *testing.T) {
 	}
 	b.taskStorage.stop = true
 }
+
+func Test_importNonCompliant(t *testing.T) {
+
+}
