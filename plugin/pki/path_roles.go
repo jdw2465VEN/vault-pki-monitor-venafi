@@ -575,8 +575,16 @@ func (b *backend) pathRoleCreate(ctx context.Context, req *logical.Request, data
 			return nil, err
 		}
 	} else {
-		//Get Venafi policy in entry format
+		if policyMap.Roles[name].EnforcementPolicy != "" {
+			//Refresh Venafi policy regexes
+			err = b.refreshVenafiPolicyEnforcementContent(ctx, b.storage, policyMap.Roles[name].EnforcementPolicy)
+			if err != nil {
+				return nil, fmt.Errorf("%s Error  refreshing venafi policy content: %s", logPrefixVenafiPolicyEnforcement, err)
+
+			}
+		}
 		if policyMap.Roles[name].DefaultsPolicy != "" {
+			//Refresh role defaults
 			err = b.synchronizeRoleDefaults(ctx, b.storage, name, policyMap.Roles[name].DefaultsPolicy)
 			if err != nil {
 				return nil, err
