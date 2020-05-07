@@ -583,21 +583,24 @@ func (b *backend) pathRoleCreate(ctx context.Context, req *logical.Request, data
 
 			}
 		}
-		rolesList, err := b.getRolesListForVenafiPolicy(ctx, b.storage, policyMap.Roles[name].DefaultsPolicy)
-		if err != nil {
-			return nil, fmt.Errorf("%s Error getting roles list for policy %s: %s", logPrefixVenafiPolicyEnforcement, policyMap.Roles[name].DefaultsPolicy, err)
+		if policyMap.Roles[name].DefaultsPolicy != "" {
+			rolesList, err := b.getRolesListForVenafiPolicy(ctx, b.storage, policyMap.Roles[name].DefaultsPolicy)
+			if err != nil {
+				return nil, fmt.Errorf("%s Error getting roles list for policy %s: %s", logPrefixVenafiPolicyEnforcement, policyMap.Roles[name].DefaultsPolicy, err)
 
-		}
+			}
 
-		for _, roleName := range rolesList.defaultsRoles {
-			log.Printf("%s Synchronizing role %s", logPrefixVenafiRoleyDefaults, roleName)
-			syncErr := b.synchronizeRoleDefaults(ctx, b.storage, roleName, policyMap.Roles[name].DefaultsPolicy)
-			if syncErr == nil {
-				log.Printf("%s finished synchronizing role %s", logPrefixVenafiRoleyDefaults, roleName)
-			} else {
-				log.Printf("%s ERROR: %s", logPrefixVenafiRoleyDefaults, syncErr)
+			for _, roleName := range rolesList.defaultsRoles {
+				log.Printf("%s Synchronizing role %s", logPrefixVenafiRoleyDefaults, roleName)
+				syncErr := b.synchronizeRoleDefaults(ctx, b.storage, roleName, policyMap.Roles[name].DefaultsPolicy)
+				if syncErr == nil {
+					log.Printf("%s finished synchronizing role %s", logPrefixVenafiRoleyDefaults, roleName)
+				} else {
+					log.Printf("%s ERROR: %s", logPrefixVenafiRoleyDefaults, syncErr)
+				}
 			}
 		}
+
 	}
 
 	return nil, nil
