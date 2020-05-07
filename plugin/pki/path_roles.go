@@ -575,6 +575,7 @@ func (b *backend) pathRoleCreate(ctx context.Context, req *logical.Request, data
 			return nil, err
 		}
 	} else {
+		//TODO: check that policy map no empty for this role
 		if policyMap.Roles[name].EnforcementPolicy != "" {
 			//Refresh Venafi policy regexes
 			err = b.refreshVenafiPolicyEnforcementContent(ctx, b.storage, policyMap.Roles[name].EnforcementPolicy)
