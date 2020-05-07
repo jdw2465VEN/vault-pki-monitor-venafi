@@ -214,9 +214,8 @@ func (b *backend) synchronizeRoleDefaults(ctx context.Context, storage logical.S
 		return err
 	}
 
-
 	//  Replace PKI entry with Venafi policy values
-	log.Printf("%s Updating with entry:\n %#v", venafiPolicyEntry)
+	log.Printf("%s Updating with entry:\n %#v", logPrefixVenafiRoleyDefaults, venafiPolicyEntry)
 	replacePKIValue(&pkiRoleEntry.OU, venafiPolicyEntry.OU)
 	replacePKIValue(&pkiRoleEntry.Organization, venafiPolicyEntry.Organization)
 	replacePKIValue(&pkiRoleEntry.Country, venafiPolicyEntry.Country)
