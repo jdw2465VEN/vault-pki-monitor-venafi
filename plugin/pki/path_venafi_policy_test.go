@@ -170,14 +170,13 @@ func Test_pathVenafiRolePolicy(t *testing.T) {
 		t.Fatal(err)
 	}
 
-
 	tests := []struct {
 		have string
 		want string
 	}{
-		{ resp.Data["defaults_policy"].(string), "default"},
+		{resp.Data["defaults_policy"].(string), "default"},
 		{resp.Data["enforcement_policy"].(string), "default"},
-		{ resp.Data["import_policy"].(string), "default"},
+		{resp.Data["import_policy"].(string), "default"},
 	}
 	for _, tt := range tests {
 		t.Run("check policy for role", func(t *testing.T) {
@@ -809,9 +808,9 @@ func Test_syncPolicyEnforcementAndRoleDefaults(t *testing.T) {
 	b := Backend(config)
 
 	type args struct {
-		policyName string
-		policyData map[string]interface{}
-		roleName string
+		policyName    string
+		policyData    map[string]interface{}
+		roleName      string
 		wantRoleEntry roleEntry
 	}
 	tests := []struct {

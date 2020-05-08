@@ -98,10 +98,10 @@ var roleData = map[string]interface{}{
 }
 
 var emptyRoleData = map[string]interface{}{
-	"allow_subdomains":   "true",
-	"max_ttl":            "4h",
-	"generate_lease":     true,
-	"key_usage":          "CertSign",
+	"allow_subdomains": "true",
+	"max_ttl":          "4h",
+	"generate_lease":   true,
+	"key_usage":        "CertSign",
 }
 
 func TestSyncRoleWithTPPPolicy(t *testing.T) {

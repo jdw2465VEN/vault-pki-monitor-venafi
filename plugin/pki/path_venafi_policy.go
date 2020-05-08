@@ -166,7 +166,7 @@ func pathVenafiRolePolicy(b *backend) *framework.Path {
 			},
 		},
 		Callbacks: map[logical.Operation]framework.OperationFunc{
-			logical.ReadOperation:   b.pathReadVenafiRolePolicy,
+			logical.ReadOperation: b.pathReadVenafiRolePolicy,
 		},
 	}
 	return ret
@@ -215,8 +215,8 @@ func (b *backend) pathReadVenafiRolePolicy(ctx context.Context, req *logical.Req
 
 	//Send policy to the user output
 	respData := map[string]interface{}{
-		"import_policy": importPolicy,
-		"defaults_policy": defaultsPolicy,
+		"import_policy":      importPolicy,
+		"defaults_policy":    defaultsPolicy,
 		"enforcement_policy": enforcePolicy,
 	}
 
